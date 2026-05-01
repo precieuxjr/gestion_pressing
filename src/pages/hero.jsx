@@ -7,7 +7,7 @@
  export default function Hero (){
 
 return(
-    <section className="flex-col max-w-7xl mx-auto px-6  flex items-center justify-between mt-25">
+    <section className="flex-col max-w-7xl mx-auto px-6  flex items-center justify-center mt-25">
 
 <h1 className="flex col flex-wrap justify-center items-center text-7xl font-bold mb-4 text-center max-[524px]:text-5xl max-[351px]:text-4xl">L'EXCELLENCE DU PRESSING À KINSHASA</h1>
 <ul className="flex flex-row flex-wrap justify-center items-center gap-2 list-disc list-inside">

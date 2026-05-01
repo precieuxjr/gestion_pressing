@@ -3,9 +3,8 @@ import Specialities from "../components/specialite";
 export default function Services() {
   return (
     <section className="py-20  min-h-screen">
-      <div className="container text-[#111111]mx-auto px-6">
-        
-        {/* En-tête de section */}
+      <div className="container text-[#111111]mx-auto px-6">  
+  
         <div className="text-center mb-16">
           <h2 className="py-2 text-blue-500 font-bold text-sm tracking-[0.3em] uppercase">
             NOTRE EXPERTISE
@@ -19,9 +18,7 @@ export default function Services() {
           </p>
         </div>
 
-        {/* Appel du composant Grille */}
         <Specialities />
-        
       </div>
     </section>
   );

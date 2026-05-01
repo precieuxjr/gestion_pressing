@@ -2,38 +2,49 @@ import './App.css'
 import Navbar from './components/navbar'
 import Hero from './pages/hero'
 import Services from './pages/services'
+import Galerie from './pages/galerie'
+
 
 function App() {
-  // On ne met plus de switch ici car on veut que tout soit sur la même page (Scroll)
-  
   return (  
-    <div className="min-h-screen">
-      {/* Navbar fixe en haut */}
-      <header id="en_tete">
+    <div className="min-h-screen bg-white ">
+   
+      <header id="en_tete" className="fixed top-0 w-full z-50">
         <Navbar />
       </header>
 
-      <main>
-        {/* Ajoute 'pt-20' pour éviter que la navbar ne cache le début du contenu */}
-        <section id="accueil" className="min-h-screen pt-20">
+      <main className="w-full">
+        {/* HERO : On utilise 'min-h-screen' pour occuper tout l'espace */}
+        <section id="accueil" className="min-h-screen flex items-center bg-gray-50">
           <Hero/>
         </section>
 
-        <section id="services" className="min-h-screen pt-20">
-          <h1 className=" text-center"><Services/></h1>
+        {/* SERVICES : Padding réactif (plus petit sur mobile, plus grand sur PC) */}
+        <section id="services" className="min-h-screen py-12 md:py-20 px-4 md:px-0">
+          <div className="container mx-auto">
+             <Services/>
+          </div>
         </section>
 
-        <section id="galerie" className="min-h-screen pt-20">
-          <h1 className="text-4xl text-center">Galerie</h1>
+        
+        <section id="galerie" className="min-h-screen py-20 bg-gray-50">
+          
+            <Galerie />
+          
         </section>
 
-        {/* Correction de l'ID : "a-propos" au lieu de "a propos" */}
-        <section id="a-propos" className="min-h-screen pt-20">
-          <h1 className="text-4xl text-center">À Propos</h1>
+        
+        <section id="a-propos" className="min-h-screen py-20">
+          <h1 className="text-3xl md:text-5xl font-black text-center dark:text-white uppercase">
+            À Propos
+          </h1>
         </section>
 
-        <section id="contact" className="min-h-screen pt-20">
-          <h1 className="text-4xl text-center">Contact</h1>
+       
+        <section id="contact" className="min-h-screen py-20 bg-gray-50">
+          <h1 className="text-3xl md:text-5xl font-black text-center dark:text-white uppercase">
+            Contact
+          </h1>
         </section>
       </main>
     </div>
