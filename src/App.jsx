@@ -2,6 +2,7 @@ import './App.css'
 import Navbar from './components/navbar'
 import Hero from './pages/hero'
 import Services from './pages/services'
+import Expertise from './pages/expertise'
 import Galerie from './pages/galerie'
 
 
@@ -14,23 +15,29 @@ function App() {
       </header>
 
       <main className="w-full">
-        {/* HERO : On utilise 'min-h-screen' pour occuper tout l'espace */}
+  
         <section id="accueil" className="min-h-screen flex items-center bg-gray-50">
           <Hero/>
         </section>
 
-        {/* SERVICES : Padding réactif (plus petit sur mobile, plus grand sur PC) */}
-        <section id="services" className="min-h-screen py-12 md:py-20 px-4 md:px-0">
+        
+        <section id="expertise" className="min-h-screen py-12 md:py-20 px-4 md:px-0">
           <div className="container mx-auto">
-             <Services/>
+             <Expertise />
           </div>
         </section>
 
         
-        <section id="galerie" className="min-h-screen py-20 bg-gray-50">
+        <section id="services" className="min-h-screen py-20 bg-gray-50">
           
-            <Galerie />
+            <Services />
           
+        </section>
+
+        <section id="galerie" className="min-h-screen py-12 md:py-20 px-4 md:px-0">
+          <div className="container mx-auto">
+             <Galerie />
+          </div>
         </section>
 
         

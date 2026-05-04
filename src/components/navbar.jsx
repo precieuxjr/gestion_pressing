@@ -7,6 +7,7 @@ function Navbar() {
   
   const nav_item = [
     { nom: 'ACCUEIL', ancre: 'accueil' },
+    /*{ nom : 'EXPERTISE', ancre: 'expertise'},*/
     { nom: 'SERVICES', ancre: 'services' },
     { nom: 'GALERIE', ancre: 'galerie' },
     { nom: 'A PROPOS', ancre: 'a-propos' },
