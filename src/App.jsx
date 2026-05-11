@@ -4,6 +4,8 @@ import Hero from './pages/hero'
 import Services from './pages/services'
 import Expertise from './pages/expertise'
 import Galerie from './pages/galerie'
+import Apropos from './pages/apropos'
+import Contact from './pages/contact'
 
 
 function App() {
@@ -41,17 +43,13 @@ function App() {
         </section>
 
         
-        <section id="a-propos" className="min-h-screen py-20">
-          <h1 className="text-3xl md:text-5xl font-black text-center dark:text-white uppercase">
-            À Propos
-          </h1>
+        <section id="a-propos" className="min-h-screen py-25 px-4  bg-gray-50">
+         <Apropos />
         </section>
 
        
-        <section id="contact" className="min-h-screen py-20 bg-gray-50">
-          <h1 className="text-3xl md:text-5xl font-black text-center dark:text-white uppercase">
-            Contact
-          </h1>
+        <section id="contact" className="min-h-screen py-20 ">
+          <Contact />
         </section>
       </main>
     </div>

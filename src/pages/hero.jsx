@@ -5,7 +5,7 @@
 
 
  export default function Hero (){
-
+  
 return(
     <section className="flex-col max-w-7xl mx-auto px-6  flex items-center justify-center mt-25">
 
