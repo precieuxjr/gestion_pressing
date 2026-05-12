@@ -55,26 +55,50 @@ export default function Apropos() {
           {avantages.map((item) => (
             <div
               key={item.id}
-              className="  rounded-xl mx-3 my-3 ml-0 flex flex-row items-center bg-gray-100 shadow-xl "
+              className="  rounded-xl mx-3 my-3 ml-0 p-3 gap-2 flex flex-row items-center bg-white/80 shadow-xl "
             >
-              <div className="w-15 h-10 justify-center flex   ">
+              <div className=" p-3  border border-gray-300 rounded-full ">
                 <span className={item.couleur}>{item.icone}</span>
               </div>
 
               <div className="">
                 <p className='text-blue-400 text-lg font-ligth'>{item.nom}</p>
+                <div className="w-5 h-1 bg-amber-300 my-1 mx-1"></div>
                 <p className="text-sm text-gray-500 ">{item.description}</p>
               </div>
             </div>
           ))}
         </div>
       </div>
-      <div className="flex flex-col justify-end m-1 px-15">
+      <div className="relative inline-block m-1">
         <img
           src={im_personnel}
           alt=""
           className="rounded-2xl inset-0 h-full w-full object-cover transition-opacity duration-500 group-hover:opacity-0"
         />
+<div className="absolute -bottom-6 -left-6 flex items-center bg-[#111111] text-white p-6 rounded-2xl shadow-2xl min-w-[320px]">
+      {/* Chiffre Statistique */}
+      <div className="pr-6 border-r border-gray-800">
+        <span className="text-3xl md:text-3xl font-black tracking-tighter">
+          5+
+        </span>
+      </div>
+
+      {/* Texte Descriptif */}
+      <div className="pl-6 flex flex-col justify-center">
+        <h4 className="text-[#93c5fd] text-lg md:text-lg font-bold leading-tight">
+          Années d'expérience
+        </h4>
+        <p className="text-gray-400 text-sm md:text-base font-medium mt-1">
+          Au service de Kinshasa
+        </p>
+      </div>
+    </div>
+
+
+
+
+        
       </div>
     </section>
   );

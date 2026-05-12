@@ -20,7 +20,7 @@ function Navbar() {
         
         {/* LOGO */}
         <div className="flex items-center ">
-          <img src={logo} alt="Logo" className="h-20 w-auto " />
+          <img src={logo} alt="Logo" className="h-20 w-auto" />
           <span className="max-[423px]:hidden ">Smart pressing</span>
           
         </div>

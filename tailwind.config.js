@@ -15,8 +15,8 @@ export default {
         'brand-surface': '#FFFFFF', 
       },
       fontFamily: {
-        sans: ['"Instrument Sans"', 'sans-serif'],
-        mono: ['"Chivo Mono"', 'monospace'],
+        sans: ['Instrument Sans', 'sans-serif'],
+        mono: ['Chivo Mono', 'monospace'],
       },
     },
   },

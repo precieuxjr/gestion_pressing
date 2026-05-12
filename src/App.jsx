@@ -6,6 +6,7 @@ import Expertise from './pages/expertise'
 import Galerie from './pages/galerie'
 import Apropos from './pages/apropos'
 import Contact from './pages/contact'
+import Footer from './components/footer'
 
 
 function App() {
@@ -52,6 +53,12 @@ function App() {
           <Contact />
         </section>
       </main>
+
+      <footer>
+
+
+    <Footer/>  
+      </footer>
     </div>
   )
 }
