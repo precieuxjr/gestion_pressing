@@ -13,10 +13,12 @@
     "@icons-pack/react-simple-icons": "^13.11.1",
     "@tailwindcss/postcss": "^4.2.4",
     "@tailwindcss/vite": "^4.2.4",
+    "framer-motion": "^12.39.0",
     "lucide-react": "^1.11.0",
     "motion": "^12.38.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "react-router-dom": "^7.15.1",
     "tailwindcss": "^4.2.4"
   },
   "devDependencies": {

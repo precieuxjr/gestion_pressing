@@ -15,13 +15,13 @@ function Navbar() {
   ];
 
   return (
-    <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-white/10 font-sans justify-center">
+    <nav className="fixed top-0 w-full z-50 bg-gray-300/30  backdrop-blur-md border-b border-white/10 font-sans justify-center">
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         
         {/* LOGO */}
         <div className="flex items-center ">
           <img src={logo} alt="Logo" className="h-20 w-auto" />
-          <span className="max-[423px]:hidden ">Smart pressing</span>
+          <span className="font-extrabold text-lg tracking-wider text-[#0F172A]">SMART<br/><span className="text-[#2563EB] text-xs tracking-widest block -mt-1">PRESSING</span></span>
           
         </div>
         <Theme />
