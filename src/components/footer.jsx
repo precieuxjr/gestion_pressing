@@ -1,8 +1,39 @@
-
+import { useRef } from 'react';
+import { motion, useInView } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 
-
 export default function Footer() {
+  const footerRef = useRef(null);
+  const isInView = useInView(footerRef, { once: true, amount: 0.2 });
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.15, delayChildren: 0.2 },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { duration: 0.5, ease: 'easeOut' } },
+  };
+
+  const titleVariants = {
+    hidden: { x: -20, opacity: 0 },
+    visible: { x: 0, opacity: 1, transition: { duration: 0.4 } },
+  };
+
+  const linkVariants = {
+    hidden: { x: -10, opacity: 0 },
+    visible: { x: 0, opacity: 1, transition: { duration: 0.3 } },
+  };
+
+  const bottomVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { duration: 0.4, delay: 0.5 } },
+  };
+
   const Nos_services = [
     { nom: 'Nettoyage à Sec', ancre: 'services' },
     { nom: 'Blanchisserie', ancre: 'services' },
@@ -18,104 +49,133 @@ export default function Footer() {
     { nom: 'A propos', ancre: 'a-propos' },
     { nom: 'Contact', ancre: 'contact' },
   ];
-  <ArrowRight className="w-4 h-4 text-blue-500 mt-1 shrink-0 transition-transform group-hover:translate-x-1" />;
+
   return (
-    <div className="bg-gray-300/30 py-4">
-      <section className=" flex flex-col">
-        <div className="grid grid-cols-4 gap-7 px-20 ">
-          <p className="text-sm">
-            SMART PRESSING , votre partenaire de confiance pour le nettoyage à
-            sec, la blanchisserie et les retouches à Kinshasa. Meilleur Ouvrier
-            du Congo. <div className="border-b border-gray-300  "></div>
-          </p>
+    <footer ref={footerRef} className="bg-gray-300/30 py-6 sm:py-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Grille principale responsive avec animations */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate={isInView ? 'visible' : 'hidden'}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8"
+        >
+          {/* Description */}
+          <motion.div variants={itemVariants}>
+            <p className="text-sm text-gray-700">
+              SMART PRESSING, votre partenaire de confiance pour le nettoyage à
+              sec, la blanchisserie et les retouches à Kinshasa. Meilleur Ouvrier
+              du Congo.
+            </p>
+            <div className="border-b border-gray-300 mt-3"></div>
+          </motion.div>
 
-          <div className="flex flex-col gap-3">
-            <div>
-              <p className="font-bold">Liens Rapides</p>
-              <div className="bg-blue-500 h-1 w-8"></div>
+          {/* Liens rapides */}
+          <motion.div variants={itemVariants}>
+            <div className="mb-3">
+              <p className="font-bold text-gray-800">Liens Rapides</p>
+              <div className="bg-blue-500 h-1 w-8 rounded-full"></div>
             </div>
-
-            <ul className=" flex flex-col gap-2">
-              {foot_item.map((item) => (
-                <li key={item.nom} className="text-gray-600">
+            <ul className="flex flex-col gap-2">
+              {foot_item.map((item, idx) => (
+                <motion.li
+                  key={item.nom}
+                  variants={linkVariants}
+                  custom={idx}
+                  initial="hidden"
+                  animate={isInView ? 'visible' : 'hidden'}
+                >
                   <a
                     href={`#${item.ancre}`}
-                    className="text-brand-primary hover:text-brand-text transition-colors flex "
+                    className="group flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors"
                   >
+                    <ArrowRight className="w-4 h-4 text-blue-500 shrink-0 transition-transform group-hover:translate-x-1" />
                     {item.nom}
-                    <ArrowRight className="w-4 h-4 text-blue-500 mt-1 shrink-0 transition-transform group-hover:translate-x-1" />
                   </a>
-                </li>
+                </motion.li>
               ))}
             </ul>
-          </div>
+          </motion.div>
 
-          <div className=" flex flex-col gap-3">
-            <div>
-              <p className="font-bold">Nos Service</p>
-              <div className="bg-blue-500 h-1 w-8"></div>
+          {/* Nos services */}
+          <motion.div variants={itemVariants}>
+            <div className="mb-3">
+              <p className="font-bold text-gray-800">Nos Services</p>
+              <div className="bg-blue-500 h-1 w-8 rounded-full"></div>
             </div>
-
-            <ul className="gap-2 flex flex-col">
-              {Nos_services.map((item) => (
-                <li key={item.nom} className="text-gray-600">
+            <ul className="flex flex-col gap-2">
+              {Nos_services.map((item, idx) => (
+                <motion.li
+                  key={item.nom}
+                  variants={linkVariants}
+                  custom={idx}
+                  initial="hidden"
+                  animate={isInView ? 'visible' : 'hidden'}
+                >
                   <a
                     href={`#${item.ancre}`}
-                    className="text-brand-primary hover:text-brand-text transition-colors flex "
+                    className="group flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors"
                   >
+                    <ArrowRight className="w-4 h-4 text-blue-500 shrink-0 transition-transform group-hover:translate-x-1" />
                     {item.nom}
-                    <ArrowRight className="w-4 h-4 text-blue-500 mt-1 shrink-0 transition-transform group-hover:translate-x-1" />
                   </a>
-                </li>
+                </motion.li>
               ))}
             </ul>
-          </div>
-      
-          <div className=" flex flex-col ">
-            <h2 className="font-bold">CONNECTEZ-VOUS</h2>
-            <div className="bg-blue-500 h-1 w-8"></div>
-            <div className='flex flex-col  my-2'>
-            
-              <label htmlFor=""className='text-gray-600'>Email </label>
-              <input
-                type="email"
-                name="email"
-                placeholder="exemple@gmail.com"
-                className="w-40 bg-gray-50  h-auto border rounded-lg border-gray-300 focus: border-outline-none "
-              /> 
-              </div> 
+          </motion.div>
 
-
-<label htmlFor="" className='text-gray-600'>Mot de passe </label>
+          {/* Connexion / Newsletter */}
+          <motion.div variants={itemVariants}>
+            <div className="mb-3">
+              <h2 className="font-bold text-gray-800">CONNECTEZ-VOUS</h2>
+              <div className="bg-blue-500 h-1 w-8 rounded-full"></div>
+            </div>
+            <form className="flex flex-col gap-3">
+              <div>
+                <label className="text-sm text-gray-600 block mb-1">Email</label>
+                <input
+                  type="email"
+                  placeholder="exemple@gmail.com"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-600 block mb-1">
+                  Mot de passe
+                </label>
+                <input
+                  type="password"
+                  placeholder="••••••"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
               <input
-                type="password"
-                name="email"
-                placeholder=" ****"
-                className="w-40 bg-gray-50  h-auto border rounded-lg border-gray-300"
+                type="submit"
+                value="Connexion"
+                className="w-full bg-blue-600 text-white font-semibold py-2 rounded-xl hover:bg-blue-700 transition cursor-pointer"
               />
-              <input type="submit" className='p-1 gap-2 m-1 bg-blue-700 text-white font-semibold w-40 border border-gray-100 rounded-2xl' value='Connexion'  />
-              <p className='text-[11px]'>Vous n'avez pas de compte?<spans><a href="">s'inscrire</a></spans></p>
-           
-          </div>
-        </div>
-        <div className="flex flex-row gap-2 items-center justify-center pt-4 pb-2">
-          <div>
-            <p className="text-[11px]">
-              Smart pressing by JS and KAZMAN. Tous droits réservés.
-            </p>
-          </div>
-          <div>
-            <p className="text-[11px]">
-              Conditions d'utilisation | Politique de confidentialité
-            </p>
-          </div>
-          <div className="text-[11px]">
-            Meilleur Ouvrier du Congo - Kinshasa, RDC
-          </div> 
-        </div>
-      </section>
-    </div>
-    
+              <p className="text-xs text-gray-500">
+                Vous n'avez pas de compte ?{' '}
+                <a href="#" className="text-blue-600 hover:underline">
+                  S'inscrire
+                </a>
+              </p>
+            </form>
+          </motion.div>
+        </motion.div>
+
+        {/* Bas de page animé */}
+        <motion.div
+          variants={bottomVariants}
+          initial="hidden"
+          animate={isInView ? 'visible' : 'hidden'}
+          className="flex flex-col md:flex-row justify-between items-center gap-3 pt-6 border-t border-gray-300 text-xs text-gray-500"
+        >
+          <p>Smart Pressing by JS and KAZMAN. Tous droits réservés.</p>
+          <p>Conditions d'utilisation | Politique de confidentialité</p>
+          <p>Meilleur Ouvrier du Congo - Kinshasa, RDC</p>
+        </motion.div>
+      </div>
+    </footer>
   );
- 
 }

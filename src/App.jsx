@@ -55,7 +55,7 @@
           </header>
 
           {/* Le routeur décide dynamiquement de ce qui s'affiche ici */}
-          <main className="w-full pt-20"> {/* Ajout d'un petit padding-top pour pas que la navbar fixe cache le haut */}
+          <main className="w-full pt-8"> {/* Ajout d'un petit padding-top pour pas que la navbar fixe cache le haut */}
             <Routes>
               {/* Si l'utilisateur est sur l'accueil, on affiche tout ton site vitrine */}
               <Route path="/" element={<AccueilVitrine />} />

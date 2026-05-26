@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Navbar from '../components/navbar';
 
 
 export default function ServicesPage() {
@@ -62,7 +63,7 @@ export default function ServicesPage() {
     <div className="min-h-screen bg-[#F8FAFC] font-sans antialiased text-[#1E293B]">
       
       {/* 1. HEADER / NAVBAR (Fidèle à l'image) */}
-      
+      <Navbar />
 
       {/* CONTENEUR PRINCIPAL */}
       <main className="max-w-7xl mx-auto px-6 py-10">
