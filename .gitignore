@@ -1,0 +1,13 @@
+# Dépendances
+node_modules/
+backend/node_modules/
+front_admin/node_modules/
+frontend_user/node_modules/
+
+# Environnement / Secrets
+.env
+backend/.env
+
+# Build outputs
+dist/
+build/
