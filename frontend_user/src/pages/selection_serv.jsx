@@ -143,7 +143,7 @@ export default function ServicesPage() {
                         <p className="text-[#2563EB] font-bold text-sm mt-0.5">
                           {service.price.toLocaleString()} FCFA <span className="text-slate-400 font-medium text-xs">/ {service.unit}</span>
                         </p>
-                        <p className="text-slate-400 text-xs mt-2 leading-relaxed max-w-[180px]">
+                        <p className="text-slate-400 text-xs mt-2 leading-relaxed max-w-45">
                           Lavage professionnel et traitement soigné.
                         </p>
                       </div>

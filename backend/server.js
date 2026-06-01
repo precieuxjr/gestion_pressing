@@ -2,24 +2,25 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/admin/authRoutes.js';
+import adminCommandeRoutes from './routes/admin/commandeRoutes.js';
 
 dotenv.config();
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json());    
 
 // Routes publiques
 app.get('/backend', (req, res) => {
   res.json({
-    message: "Bienvenue sur l'API du Pressing !",
-    status: 'Serveur opérationnel',
-    database: 'Connectée 🐬',
+    message: "Bienvenue sur l'API du Pressing !"
   });
 });
 
 // Route d'authentification (avant le 404)
 app.use('/api/auth', authRoutes);
+app.use('/api/admin/commandes', adminCommandeRoutes);
+
 
 // ⚠️ Middleware 404 – doit être APRÈS toutes les routes
 app.use((req, res) => {

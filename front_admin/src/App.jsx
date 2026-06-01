@@ -1,20 +1,33 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import SmartPressingDashboard from './pages/dashboard'; // Ajuste le chemin si nécessaire
-import { AdminLoginPage } from './pages/auth/authentification';
+import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
+import Navbar from './components/nav_admin';
+import Dashboard from './pages/dashboard';
+import Commandes from './pages/commandes';
+import AdminLoginPage from './pages/auth/authentification';
 
-function App() {
-  return (<section className='bg-gray-50'>
+const AdminLayout = () => {
+  return (
+    <div className="flex">
+      <Navbar  /> 
+      <main className="flex-1 pl-70">
+        <Outlet />
+      </main>
+    </div>
+  );
+};
+
+export default function App() {
+  return (
     <Router>
       <Routes>
-        {/* 1. La racine "/" affiche TOUJOURS la page de connexion en premier */}
+        {/* Page de connexion */}
         <Route path="/" element={<AdminLoginPage />} />
-
-        {/* 2. L'adresse "/admin/dashboard" affichera le tableau de bord après la connexion */}
-        <Route path="/admin/dashboard" element={<SmartPressingDashboard />} />
+        
+        {/* Routes Admin - CORRECTION ICI */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="commandes" element={<Commandes />} />
+        </Route>
       </Routes>
     </Router>
-    </section>
   );
 }
-
-export default App;

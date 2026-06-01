@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import Navbar from '../components/nav_admin';
+import { Link } from 'react-router-dom';
 import {
   Shirt,
   Truck,
@@ -9,7 +9,6 @@ import {
 import { Bell } from 'lucide-react';
 import Theme from '../components/theme';
 import illus_person from '../assets/dashboard/undraw_all-the-data_ijgn.svg';
-
 
 // Variants for staggered children
 const containerVariants = {
@@ -41,15 +40,12 @@ const tableRowVariants = {
   }),
 };
 
-
-
-
 export default function Dashboard() {
   const stats = [
     { id: 1, nom: 'Vêtement à récupérer', icon: Shirt, result: '100' },
-    { id: 2, nom: 'VÊTEMENT À LIVRER', icon: Truck, result: '' },
-    { id: 3, nom: 'Client remboursé', icon: Undo2, result: '' },
-    { id: 4, nom: 'REVENUE MENSUEL', icon: DollarSign, result: '' },
+    { id: 2, nom: 'VÊTEMENT À LIVRER', icon: Truck, result: '0' },
+    { id: 3, nom: 'Client remboursé', icon: Undo2, result: '0' },
+    { id: 4, nom: 'REVENUE MENSUEL', icon: DollarSign, result: '0' },
   ];
 
   return (
@@ -59,12 +55,8 @@ export default function Dashboard() {
       transition={{ duration: 0.5 }}
       className="flex flex-row min-h-screen overflow-x-hidden w-full bg-gray-300"
     >
-      <nav>
-        <Navbar />
-      </nav>
-
       <div className="flex flex-col flex-1 bg-gray-50">
-        {/* Header with slide down */}
+        {/* Header */}
         <motion.header
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -87,7 +79,7 @@ export default function Dashboard() {
           </div>
         </motion.header>
 
-        {/* Welcome block with fade left */}
+        {/* Welcome block */}
         <motion.div
           initial={{ x: -20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
@@ -128,7 +120,7 @@ export default function Dashboard() {
         </motion.div>
 
         <main className="flex flex-col my-2 rounded-2xl h-30 mx-8 pb-2">
-          {/* Stats cards with staggered animation */}
+          {/* Stats cards */}
           <motion.div
             variants={containerVariants}
             initial="hidden"
@@ -164,13 +156,15 @@ export default function Dashboard() {
               className="flex flex-row p-3 justify-between rounded-t-lg bg-linear-to-br from-white to-blue-50"
             >
               <p className="text-[13px] font-bold">GESTION DES COMMANDES</p>
-              <motion.span
-                whileHover={{ x: 5 }}
-                whileTap={{ scale: 0.95 }}
-                className="text-[13px] font-bold flex justify-end text-blue-500 cursor-pointer"
-              >
-                VOIR PLUS
-              </motion.span>
+              <Link to='/admin/commandes'>
+                <motion.span
+                  whileHover={{ x: 5 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="text-[13px] font-bold flex justify-end text-blue-500 cursor-pointer"
+                > 
+                  VOIR PLUS
+                </motion.span>
+              </Link>
             </motion.div>
 
             <table className="min-w-full bg-white border border-gray-200 rounded-lg">
@@ -180,15 +174,14 @@ export default function Dashboard() {
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NOM</th>
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TYPE SERVICE</th>
                   <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">STATUT</th>
-                  
                 </tr>
               </thead>
               <tbody>
                 {[
                   { id: '#CMD001', name: 'Jean Dupont', service: 'Nettoyage à sec', status: 'En cours' },
                   { id: '#CMD002', name: 'Marie Curie', service: 'Repassage', status: 'Terminé' },
-                  { id: '#CMD003', name: 'Marie Curie', service: 'Repassage', status: 'Terminé' },
-                  { id: '#CMD004', name: 'Marie Curie', service: 'Repassage', status: 'Terminé' },
+                  { id: '#CMD003', name: 'Paul Martin', service: 'Repassage', status: 'Terminé' },
+                  { id: '#CMD004', name: 'Sophie Durand', service: 'Nettoyage', status: 'En attente' },
                 ].map((row, idx) => (
                   <motion.tr
                     key={idx}
@@ -202,18 +195,12 @@ export default function Dashboard() {
                     <td className="px-3 py-2 text-sm text-gray-500">{row.name}</td>
                     <td className="px-3 py-2 text-sm text-gray-500">{row.service}</td>
                     <td className="px-3 py-2 text-sm text-gray-500">{row.status}</td>
-
                   </motion.tr>
                 ))}
               </tbody>
             </table>
           </div>
         </main>
-
-        <div>
-          <div></div>
-          <div></div>
-        </div>
       </div>
     </motion.section>
   );
