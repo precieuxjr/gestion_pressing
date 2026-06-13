@@ -4,7 +4,7 @@ import { adminMiddleware } from '../../middlewares/adminMiddleware.js';
 import {
     getAllCommandes,
     getCommandeDetails,
-    updateCommandeStatus,
+    updateCommandeStatut,
     updateCommandeDates,
     supprimerCommande,
     getCommandesStats
@@ -17,7 +17,7 @@ router.use(verifyToken, adminMiddleware); // Authentification + rôle admin
 router.get('/', getAllCommandes);
 router.get('/stats', getCommandesStats);
 router.get('/:publicId', getCommandeDetails);
-router.patch('/:publicId', updateCommandeStatus);
+router.patch('/:publicId', updateCommandeStatut);
 router.put('/:publicId/dates', updateCommandeDates);
 router.delete('/:publicId', supprimerCommande);
 

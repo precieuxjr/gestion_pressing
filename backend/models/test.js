@@ -1,52 +1,79 @@
 import db from '../config/db.js';
-import { v4 as uuidv4 } from 'uuid';
+import DetailsCommande from '../models/details_commande.js';
 
-async function seedCommandes() {
+async function seedDetailsCommandes() {
     try {
-        // Récupérer des clients existants (au moins un)
-        const [clients] = await db.execute('SELECT id FROM users WHERE role = "client" LIMIT 20');
-        if (clients.length === 0) throw new Error('Aucun client trouvé');
-
-        let inserted = 0;
+        console.log('🔍 Génération des détails de commandes...\n');
         
-        // Valeurs valides pour l'ENUM
-        const statuts = ['En attente', 'Payée', 'Livrée', 'Annulée'];
+        // Récupérer toutes les commandes
+        const [commandes] = await db.execute('SELECT id, public_id FROM commandes');
         
-        for (let i = 0; i < 20; i++) {
-            const userId = clients[i % clients.length].id;
-            const publicId = uuidv4();
-            const reference = `CMD-${Date.now()}-${i+1}`;
-            
-            // Date de dépôt aléatoire (0-30 jours dans le passé)
-            const depositDate = new Date();
-            depositDate.setDate(depositDate.getDate() - Math.floor(Math.random() * 30));
-            
-            // Date de livraison prévue (2-9 jours après dépôt)
-            const expectedDate = new Date(depositDate);
-            expectedDate.setDate(expectedDate.getDate() + Math.floor(Math.random() * 7) + 2);
-            
-            // Statut aléatoire
-            const statut = statuts[Math.floor(Math.random() * statuts.length)];
-            
-            // Montant aléatoire entre 5000 et 50000
-            const montant = Math.floor(Math.random() * 45000) + 5000;
-            
-            await db.execute(
-                `INSERT INTO commandes 
-                 (public_id, user_id, reference, montant_total, statut, adresse_collecte, adresse_livraison, created_at, date_livraison)
-                 VALUES (?, ?, ?, ?, ?, 'Adresse collecte par défaut', 'Adresse livraison par défaut', ?, ?)`,
-                [publicId, userId, reference, montant, statut, depositDate, expectedDate]
-            );
-            inserted++;
-            console.log(`✅ Commande ${inserted}/20 créée : ${reference} (${statut})`);
+        if (commandes.length === 0) {
+            console.log('📭 Aucune commande trouvée. Créez d\'abord des commandes.');
+            process.exit(0);
         }
         
-        console.log(`\n🎉 ${inserted} commandes créées avec succès.`);
+        // Récupérer tous les services
+        const [services] = await db.execute('SELECT id, nom, prix FROM services');
+        
+        if (services.length === 0) {
+            console.log('📭 Aucun service trouvé. Initialisez d\'abord les services.');
+            process.exit(0);
+        }
+        
+        let detailsAdded = 0;
+        
+        for (const commande of commandes) {
+            // Vérifier si la commande a déjà des détails
+            const hasDetails = await DetailsCommande.hasDetails(commande.id);
+            
+            if (!hasDetails) {
+                // Ajouter 1 à 3 services aléatoires par commande
+                const nbServices = Math.floor(Math.random() * 3) + 1;
+                const shuffledServices = [...services].sort(() => 0.5 - Math.random());
+                const selectedServices = shuffledServices.slice(0, nbServices);
+                
+                let montantTotal = 0;
+                
+                for (const service of selectedServices) {
+                    const quantite = Math.floor(Math.random() * 3) + 1;
+                    const prixUnitaire = parseFloat(service.prix);
+                    const prixTotal = quantite * prixUnitaire;
+                    montantTotal += prixTotal;
+                    
+                    // Utilisation de la méthode ajouter() au lieu de create()
+                    const detail = new DetailsCommande({
+                        commande_id: commande.id,
+                        service_id: service.id,
+                        quantite: quantite,
+                        prix_unitaire_scelle: prixUnitaire,
+                        details: `${service.nom} - ${quantite} article(s)`
+                    });
+                    
+                    await detail.ajouter();
+                    
+                    detailsAdded++;
+                    console.log(`   ✅ ${service.nom} x${quantite} = ${prixTotal.toLocaleString()} FCFA`);
+                }
+                
+                // Mettre à jour le montant total de la commande
+                await db.execute(
+                    'UPDATE commandes SET montant_total = ? WHERE id = ?',
+                    [montantTotal, commande.id]
+                );
+                
+                console.log(`   📦 Commande ${commande.public_id.substring(0, 8)}... : ${montantTotal.toLocaleString()} FCFA\n`);
+            }
+        }
+        
+        console.log(`\n🎉 ${detailsAdded} détails de commande créés !`);
         process.exit(0);
+        
     } catch (err) {
         console.error('❌ Erreur :', err.message);
+        console.error(err);
         process.exit(1);
     }
 }
 
-seedCommandes();
+seedDetailsCommandes();

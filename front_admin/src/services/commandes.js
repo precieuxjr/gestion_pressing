@@ -3,11 +3,12 @@ import { apiFetch } from './api';
 
 export const commandesService = {
   getAll: () => apiFetch('/admin/commandes'),
+  getStats: () => apiFetch('/admin/commandes/stats'),
   getById: (id) => apiFetch(`/admin/commandes/${id}`),
-  updateStatus: (id, status) =>
+  updateStatus: (id, statut) =>
     apiFetch(`/admin/commandes/${id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ statut }),
     }),
   // autres méthodes (create, delete...)
 };

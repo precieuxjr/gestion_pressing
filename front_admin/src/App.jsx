@@ -3,12 +3,14 @@ import Navbar from './components/nav_admin';
 import Dashboard from './pages/dashboard';
 import Commandes from './pages/commandes';
 import AdminLoginPage from './pages/auth/authentification';
+import Clients from './pages/clients';
+import Services_pressing from './pages/services';
 
 const AdminLayout = () => {
   return (
-    <div className="flex">
+    <div className="flex relative">
       <Navbar  /> 
-      <main className="flex-1 pl-70">
+      <main className="flex-1 mx-72  ">
         <Outlet />
       </main>
     </div>
@@ -26,6 +28,8 @@ export default function App() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="commandes" element={<Commandes />} />
+          <Route path='clients' element ={<Clients />} />
+          <Route path='services' element ={<Services_pressing />}/>
         </Route>
       </Routes>
     </Router>

@@ -6,7 +6,7 @@ export default class Commande {
   constructor(data = {}) {
     this.id = data.id;
     this.public_id = data.public_id;
-    this.user_public_id = data.user_public_id;
+    this.user_id = data.user_id;  
     this.reference = data.reference;
     this.montant_total = data.montant_total || 0;
     this.statut = data.statut || 'En attente';
@@ -39,7 +39,7 @@ export default class Commande {
   }
 
   async Commander() {
-    if (!this.user_public_id) throw new Error("l'identifiant utilisateur est requis !");
+    if (!this.user_id) throw new Error("l'identifiant utilisateur est requis !");
     if (!this.adresse_collecte) throw new Error("l'adresse de collecte est requis !");
     if (!this.adresse_livraison) throw new Error("l'adresse de livraison est requis !");
 
@@ -55,13 +55,13 @@ export default class Commande {
     const dateLivraisonFormatee = Commande.formater_date(this.date_livraison);
 
     const [resultat] = await db.execute(
-      `INSERT INTO commandes 
-      (public_id, user_public_id, reference, montant_total, statut, mode_paiement,
+     `INSERT INTO commandes 
+      (public_id, user_id, reference, montant_total, statut, mode_paiement,
        adresse_collecte, adresse_livraison, note_client, date_collecte, date_livraison)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         this.public_id,
-        this.user_public_id,
+        this.user_id,
         this.reference,
         this.montant_total,
         this.statut,
@@ -121,8 +121,15 @@ export default class Commande {
   async marquerLivree() { return this.updateStatut('Livrée'); }
 
   async getDetails() {
-    return await DetailsCommande.findByCommandeId(this.id);
-  }
+    const [rows] = await db.execute(
+        `SELECT dc.*, s.nom as service_nom 
+         FROM details_commandes dc
+         JOIN services s ON dc.service_id = s.id
+         WHERE dc.commande_id = ?`,
+        [this.id]
+    );
+    return rows;  // toujours un tableau
+}
 
   async recalculerTotal() {
     if (!this.id) throw new Error('Commande non encore enregistrée');
@@ -141,56 +148,60 @@ export default class Commande {
     return this;
   }
 
+  // models/commandes.js
+
   static async findByPublicId(publicId) {
-    const [rows] = await db.execute(
-      `SELECT c.*, u.nom, u.prenom, u.email, u.telephone 
-       FROM commandes c
-       JOIN users u ON c.user_public_id = u.public_id
-       WHERE c.public_id = ?`,
-      [publicId]
-    );
-    return rows.length ? new Commande(rows[0]) : null;
-  }
-
-  static async findByUserPublicId(userPublicId) {
-    const [rows] = await db.execute(
-      `SELECT * FROM commandes WHERE user_public_id = ? ORDER BY created_at DESC`,
-      [userPublicId]
-    );
-    return rows.map(row => new Commande(row));
-  }
-
-  static async findAll(limit = 100, offset = 0) {
-    const [rows] = await db.execute(
-      `SELECT c.*, u.nom, u.prenom, u.email, u.telephone 
-       FROM commandes c
-       JOIN users u ON c.user_public_id = u.public_id
-       ORDER BY c.created_at DESC
-       LIMIT ? OFFSET ?`,
-      [limit, offset]
-    );
-    return rows.map(row => new Commande(row));
-  }
-  
-  
-  static async findAllWithClientInfo() {
     const [rows] = await db.execute(`
-       SELECT 
-    c.public_id as id,
-    c.reference,
-    c.montant_total as amount,
-    c.statut as status,
-    c.created_at as depositDate,
-    c.date_livraison as expectedDate,
-    CONCAT(u.prenom, ' ', u.nom) as client,
-    u.telephone as phone
-FROM commandes c
-JOIN users u ON c.user_id = u.id   
-ORDER BY c.created_at DESC
-    `);
-    return rows;
+        SELECT c.*, u.nom, u.prenom, u.email, u.telephone
+        FROM commandes c
+        JOIN users u ON c.user_id = u.id
+        WHERE c.public_id = ?
+    `, [publicId]);
+    return rows[0] ? new Commande(rows[0]) : null;
 }
 
+async getDetails() {
+  console.log('🔍 getDetails - commande_id:', this.id);
+  const [rows] = await db.execute(`
+      SELECT * FROM details_commandes WHERE commande_id = ?
+  `, [this.id]);
+  console.log('📊 Détails trouvés:', rows.length);
+  return rows.map(row => new DetailsCommande(row));
+}static async findByPublicId(publicId) {
+  const [rows] = await db.execute(`
+      SELECT c.*, u.nom, u.prenom, u.email, u.telephone
+      FROM commandes c
+      JOIN users u ON c.user_id = u.id
+      WHERE c.public_id = ?
+  `, [publicId]);
+  return rows[0] ? new Commande(rows[0]) : null;
+} static async findAll(limit = 100, offset = 0) {
+  const [rows] = await db.execute(`
+      SELECT c.*, u.nom, u.prenom, u.email, u.telephone 
+      FROM commandes c
+      JOIN users u ON c.user_id = u.id
+      ORDER BY c.created_at DESC
+      LIMIT ? OFFSET ?
+  `, [limit, offset]);
+  return rows.map(row => new Commande(row));
+}
+static async findAllWithClientInfo() {
+  const [rows] = await db.execute(`
+      SELECT 
+          c.public_id as id,
+          c.reference,
+          c.montant_total as amount,
+          c.statut as status,
+          c.created_at as depositDate,
+          c.date_livraison as expectedDate,
+          CONCAT(u.prenom, ' ', u.nom) as client,
+          u.telephone as phone
+      FROM commandes c
+      JOIN users u ON c.user_id = u.id
+      ORDER BY c.created_at DESC
+  `);
+  return rows;
+}
   static async deleteByPublicId(publicId) {
     const [result] = await db.execute('DELETE FROM commandes WHERE public_id = ?', [publicId]);
     return result.affectedRows > 0;

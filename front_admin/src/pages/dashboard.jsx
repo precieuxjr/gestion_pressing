@@ -53,7 +53,7 @@ export default function Dashboard() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
-      className="flex flex-row min-h-screen overflow-x-hidden w-full bg-gray-300"
+      className="flex flex-row min-h-screen overflow-x-hidden w-250 bg-gray-300"
     >
       <div className="flex flex-col flex-1 bg-gray-50">
         {/* Header */}

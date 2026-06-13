@@ -1,3 +1,4 @@
+// services/clients.js
 import { apiFetch } from './api';
 
 export const clientsService = {
@@ -6,4 +7,4 @@ export const clientsService = {
   create: (data) => apiFetch('/admin/clients', { method: 'POST', body: JSON.stringify(data) }),
   update: (id, data) => apiFetch(`/admin/clients/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id) => apiFetch(`/admin/clients/${id}`, { method: 'DELETE' }),
-};
+};  

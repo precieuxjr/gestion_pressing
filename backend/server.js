@@ -3,6 +3,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/admin/authRoutes.js';
 import adminCommandeRoutes from './routes/admin/commandeRoutes.js';
+import clientRoutes from './routes/admin/clientRoutes.js';
+import servicesRoutes from './routes/admin/servicesRoutes.js'
 
 dotenv.config();
 const app = express();
@@ -20,11 +22,13 @@ app.get('/backend', (req, res) => {
 // Route d'authentification (avant le 404)
 app.use('/api/auth', authRoutes);
 app.use('/api/admin/commandes', adminCommandeRoutes);
+app.use('/api/admin/clients', clientRoutes);
+app.use ('/api/admin/services',servicesRoutes);
 
 
 // ⚠️ Middleware 404 – doit être APRÈS toutes les routes
 app.use((req, res) => {
-  res.status(404).json({ message: "Désolé, cette page n'existe pas." });
+  res.status(404).json({ message: "Désolé, cette page n'existe pas JR." });
 });
 
 // Gestion globale des erreurs (optionnel mais recommandé)
@@ -33,7 +37,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Erreur interne du serveur.' });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT  ;
 app.listen(PORT, () => {
   console.log(`Serveur en ligne sur http://localhost:${PORT}`);
 });

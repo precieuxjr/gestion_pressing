@@ -81,13 +81,35 @@ VALUES (?, ?, ?, ?, ?, ?, ? ,?)`,
 
     return rows.map((row) => new User(row));
   }
+  
+  
+  
+  static async findById(id) {
+    console.log('🔍 User.findById appelé avec id:', id);
+    try {
+        const [rows] = await db.execute(
+            `SELECT public_id, nom, prenom, postnom, email, telephone, adresse, 
+                    role, email_verifie, statut, created_at 
+             FROM users 
+             WHERE id = ?`,
+            [id]
+        );
+        console.log('📊 Résultat:', rows.length > 0 ? 'trouvé' : 'non trouvé');
+        return rows.length ? new User(rows[0]) : null;
+    } catch (error) {
+        console.error('❌ Erreur dans findById:', error);
+        throw error;
+    }
+}
+
+
 
   static async findID(uuid) {
     const [rows] = await db.execute(
       `SELECT nom,prenom,email,telephone,adresse from  users WHERE public_id = ?`,
       [uuid]
     );
-    return rows.length < 0 ? new User(rows[0]) : null;
+    return rows.length > 0 ? new User(rows[0]) : null;
   }
 
   static async findByPublicId(publicId) {
@@ -142,7 +164,6 @@ VALUES (?, ?, ?, ?, ?, ?, ? ,?)`,
 
 
 async changePassword(oldPassword, newPassword) {
-  // 1. Validation des entrées
   if (!oldPassword || !newPassword) {
       throw new Error('Ancien et nouveau mot de passe requis');
   }
@@ -153,28 +174,23 @@ async changePassword(oldPassword, newPassword) {
       throw new Error('Le nouveau mot de passe doit être différent de l’ancien');
   }
 
-  // 2. Récupérer le mot de passe haché actuel depuis la base
   const [rows] = await db.execute(
-      'SELECT password FROM users WHERE public_id = ?',
+      'SELECT password FROM users WHERE public_id = ?',  // ← corrigé : password au lieu de mot_de_passe
       [this.public_id]
   );
   if (rows.length === 0) {
       throw new Error('Utilisateur introuvable');
   }
 
-  // 3. Vérifier l'ancien mot de passe
-  const isMatch = await bcrypt.compare(oldPassword, rows[0].mot_de_passe);
+  const isMatch = await bcrypt.compare(oldPassword, rows[0].password);  // ← corrigé
   if (!isMatch) {
       throw new Error('Ancien mot de passe incorrect');
   }
 
-  // 4. Hacher le nouveau mot de passe
   const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-  // 5. Mettre à jour en base
   const [result] = await db.execute(
-      `UPDATE users SET mot_de_passe = ?, updated_at = NOW() 
-       WHERE public_id = ?`,
+      `UPDATE users SET password = ?, updated_at = NOW() WHERE public_id = ?`,  // ← corrigé
       [hashedPassword, this.public_id]
   );
 
@@ -182,9 +198,7 @@ async changePassword(oldPassword, newPassword) {
       throw new Error('Échec de la mise à jour du mot de passe');
   }
 
-  // 6. Supprimer la référence en clair dans l'instance si elle existe
   delete this.password;
- 
   return true;
 }
 
