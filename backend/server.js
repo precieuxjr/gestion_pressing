@@ -4,7 +4,9 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/admin/authRoutes.js';
 import adminCommandeRoutes from './routes/admin/commandeRoutes.js';
 import clientRoutes from './routes/admin/clientRoutes.js';
-import servicesRoutes from './routes/admin/servicesRoutes.js'
+import servicesRoutes from './routes/admin/servicesRoutes.js';
+import paiementRoutes from './routes/admin/paiementRoutes.js';
+import livraisonRoutes from './routes/admin/livraisonRoutes.js';
 
 dotenv.config();
 const app = express();
@@ -24,7 +26,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin/commandes', adminCommandeRoutes);
 app.use('/api/admin/clients', clientRoutes);
 app.use ('/api/admin/services',servicesRoutes);
-
+app.use('/api/admin/paiements', paiementRoutes);
+app.use('/api/admin/livraisons', livraisonRoutes);
 
 // ⚠️ Middleware 404 – doit être APRÈS toutes les routes
 app.use((req, res) => {

@@ -5,7 +5,9 @@ import Commandes from './pages/commandes';
 import AdminLoginPage from './pages/auth/authentification';
 import Clients from './pages/clients';
 import Services_pressing from './pages/services';
-
+import Paiements from './pages/paiements';
+import Livraisons from './pages/livraison';
+import Parametres from './pages/parametre';
 const AdminLayout = () => {
   return (
     <div className="flex relative">
@@ -30,6 +32,9 @@ export default function App() {
           <Route path="commandes" element={<Commandes />} />
           <Route path='clients' element ={<Clients />} />
           <Route path='services' element ={<Services_pressing />}/>
+          <Route path='paiements' element ={<Paiements />}/>
+          <Route path='livraisons' element ={<Livraisons />}/>
+          <Route path='parametre' element ={<Parametres />}/>
         </Route>
       </Routes>
     </Router>

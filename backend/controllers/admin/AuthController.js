@@ -36,10 +36,12 @@ export default  async function login(req, res) {
                 { 
                     public_id: user.public_id,
                     email: user.email,
-                    role: user.role
+                    role: user.role,
+                    prenom: user.prenom,
+                    nom: user.nom
                 },
                 process.env.JWT_SECRET,   // variable d'environnement
-                { expiresIn: '24h' }
+                { expiresIn: '4h' }
             );
 
         // 6. Réponse (ne pas renvoyer le mot de passe)

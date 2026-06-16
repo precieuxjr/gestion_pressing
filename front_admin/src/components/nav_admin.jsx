@@ -26,7 +26,7 @@ export default function Navbar() {
         { id: 2, nom: 'Gestion des Commandes', icon: ShoppingCart, lien: '/admin/commandes' },
         { id: 3, nom: 'Gestion des Clients', icon: Users, lien: '/admin/clients' },
         { id: 4, nom: 'Services du Pressing', icon: Shirt, lien: '/admin/services' },
-        { id: 5, nom: 'Paiement & Facturation', icon: CreditCard, lien: '/admin/facturation' },
+        { id: 5, nom: 'Paiement & Facturation', icon: CreditCard, lien: '/admin/paiements' },
         { id: 6, nom: 'Livraisons', icon: Truck, lien: '/admin/livraisons' }
     ];
 
@@ -82,7 +82,7 @@ export default function Navbar() {
                     transition={{ delay: 0.3, duration: 0.4 }}
                     className="border border-gray-300"
                 />
-
+   <Link to={`/admin/parametre`}>
                 <motion.div 
                     custom={menu.length}
                     initial="hidden"
@@ -94,7 +94,7 @@ export default function Navbar() {
                     <Settings className="w-5 h-5" />
                     <span>Paramètre</span>
                 </motion.div>
-
+                </Link>
                 <motion.div 
                     custom={menu.length + 1}
                     initial="hidden"

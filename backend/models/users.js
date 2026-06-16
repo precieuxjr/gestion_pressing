@@ -13,9 +13,9 @@ export default class User {
     this.password = data.password;
     this.adresse = data.adresse;
     this.role = data.role || 'client';
-
     this.email_verifie = data.email_verifie || 0;
     this.statut = data.statut || 'actif';
+    this.disponibilite = data.disponibilite || 'Disponible';
   }
 
   async enregistrement() {
@@ -83,13 +83,12 @@ VALUES (?, ?, ?, ?, ?, ?, ? ,?)`,
   }
   
   
-  
   static async findById(id) {
     console.log('🔍 User.findById appelé avec id:', id);
     try {
         const [rows] = await db.execute(
             `SELECT public_id, nom, prenom, postnom, email, telephone, adresse, 
-                    role, email_verifie, statut, created_at 
+                    role, email_verifie, statut, disponibilite, created_at 
              FROM users 
              WHERE id = ?`,
             [id]
@@ -202,7 +201,40 @@ async changePassword(oldPassword, newPassword) {
   return true;
 }
 
+// Récupérer tous les livreurs avec leur disponibilité
+static async findAllLivreurs() {
+  const [rows] = await db.execute(
+      `SELECT public_id, nom, prenom, telephone, email, disponibilite
+       FROM users
+       WHERE role = 'livreur'
+       ORDER BY nom ASC`
+  );
+  return rows;
+}
 
+// Récupérer uniquement les livreurs disponibles
+static async findAvailableLivreurs() {
+  const [rows] = await db.execute(
+      `SELECT public_id, nom, prenom, telephone, disponibilite
+       FROM users
+       WHERE role = 'livreur' AND disponibilite = 'Disponible'
+       ORDER BY nom ASC`
+  );
+  return rows;
+}
+
+// Mettre à jour la disponibilité d'un livreur
+static async updateDisponibilite(userId, statut) {
+  const statutsValides = ['Disponible', 'En livraison', 'Indisponible'];
+  if (!statutsValides.includes(statut)) {
+      throw new Error('Statut de disponibilité invalide');
+  }
+  const [result] = await db.execute(
+      `UPDATE users SET disponibilite = ? WHERE id = ?`,
+      [statut, userId]
+  );
+  return result.affectedRows > 0;
+}
 
 async desactiverCompte() {
   if (!this.public_id) {
@@ -270,6 +302,43 @@ static async getPublicIdByEmail(email) {
   return user ? user.public_id : null;
 }
 
+// Récupérer les livreurs disponibles
+static async findAvailableLivreurs() {
+  const [rows] = await db.execute(
+      `SELECT id, public_id, nom, prenom, telephone, disponibilite
+       FROM users
+       WHERE role = 'livreur' AND disponibilite = 'Disponible'
+       ORDER BY nom ASC`
+  );
+  return rows;
+}
 
+// Récupérer tous les livreurs (admin)
+static async findAllLivreurs() {
+  const [rows] = await db.execute(
+      `SELECT id, public_id, nom, prenom, telephone, email, adresse, disponibilite
+       FROM users
+       WHERE role = 'livreur'
+       ORDER BY nom ASC`
+  );
+  return rows;
+}
+
+// Mettre à jour la disponibilité d'un livreur
+static async updateDisponibilite(userId, statut) {
+  const statutsValides = ['Disponible', 'En livraison', 'Indisponible'];
+  if (!statutsValides.includes(statut)) {
+      throw new Error('Statut de disponibilité invalide');
+  }
+  const [result] = await db.execute(
+      `UPDATE users SET disponibilite = ?, updated_at = NOW() WHERE id = ?`,
+      [statut, userId]
+  );
+  if (result.affectedRows === 0) throw new Error('Utilisateur introuvable');
+  return true;
+}
 
 }
+
+
+

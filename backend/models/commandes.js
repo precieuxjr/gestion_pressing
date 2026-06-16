@@ -19,6 +19,7 @@ export default class Commande {
     this.row_stamp = data.row_stamp || 1;
     this.created_at = data.created_at;
     this.updated_at = data.updated_at;
+    this.livreur_id = data.livreur_id || null;
   }
 
   // Formater une date pour MySQL DATETIME
@@ -43,7 +44,7 @@ export default class Commande {
     if (!this.adresse_collecte) throw new Error("l'adresse de collecte est requis !");
     if (!this.adresse_livraison) throw new Error("l'adresse de livraison est requis !");
 
-    const statutsValides = ['En attente', 'Payée', 'En cours', 'Livrée', 'Annulée'];
+    const statutsValides = ['En attente', 'Payée', 'Annulée', 'Livrée', 'Prêt'];
     if (!statutsValides.includes(this.statut)) {
       throw new Error('Statut invalide');
     }
@@ -103,7 +104,7 @@ export default class Commande {
   }
 
   async updateStatut(nouveauStatut) {
-    const statutsValides = ['En attente', 'Payée', 'En cours', 'Livrée', 'Annulée'];
+    const statutsValides = ['En attente', 'Payée', 'Annulée', 'Livrée', 'Prêt'];
     if (!statutsValides.includes(nouveauStatut)) throw new Error('Statut invalide');
     const [result] = await db.execute(
       `UPDATE commandes SET statut = ?, row_stamp = row_stamp + 1, updated_at = NOW()
@@ -119,6 +120,7 @@ export default class Commande {
   async annuler() { return this.updateStatut('Annulée'); }
   async marquerPayee() { return this.updateStatut('Payée'); }
   async marquerLivree() { return this.updateStatut('Livrée'); }
+  async marquerLivree() { return this.updateStatut('Prêt'); }
 
   async getDetails() {
     const [rows] = await db.execute(
@@ -185,6 +187,114 @@ async getDetails() {
   `, [limit, offset]);
   return rows.map(row => new Commande(row));
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Récupérer toutes les commandes avec les informations de livraison
+static async findAllWithLivraisonInfo() {
+  const [rows] = await db.execute(`
+      SELECT 
+          c.public_id as id,
+          c.reference,
+          c.montant_total as amount,
+          c.statut as status,
+          c.created_at as depositDate,
+          c.date_livraison as expectedDate,
+          CONCAT(u.prenom, ' ', u.nom) as client,
+          u.telephone as phone,
+          c.adresse_collecte,
+          c.adresse_livraison,
+          c.livreur_id,
+          c.statut_livraison,
+          (SELECT CONCAT(prenom, ' ', nom) FROM users WHERE id = c.livreur_id) as livreur_nom
+      FROM commandes c
+      JOIN users u ON c.user_id = u.id
+      ORDER BY c.created_at DESC
+  `);
+  return rows;
+}
+
+// Récupérer une commande avec ses infos de livraison par son public_id
+static async findByIdWithLivraison(publicId) {
+  const [rows] = await db.execute(`
+      SELECT 
+          c.*,
+          CONCAT(u.prenom, ' ', u.nom) as client,
+          u.telephone as phone,
+          (SELECT CONCAT(prenom, ' ', nom) FROM users WHERE id = c.livreur_id) as livreur_nom
+      FROM commandes c
+      JOIN users u ON c.user_id = u.id
+      WHERE c.public_id = ?
+  `, [publicId]);
+  return rows[0] ? new Commande(rows[0]) : null;
+}
+
+// Mettre à jour le livreur et le statut de livraison (assignation)
+async assignerLivreur(livreurId) {
+  
+  const [result] = await db.execute(
+      `UPDATE commandes 
+       SET livreur_id = ?, statut_livraison = 'En cours', updated_at = NOW() 
+       WHERE public_id = ?`,
+      [livreurId, this.public_id]
+  );
+  if (result.affectedRows === 0) throw new Error('Échec de l\'assignation');
+  this.livreur_id = livreurId;
+  this.statut_livraison = 'En cours';
+  return this;
+}
+
+// Mettre à jour le statut de livraison
+async updateStatutLivraison(nouveauStatut) {
+  const statutsValides = ['En attente', 'Collectée', 'En cours', 'Livrée', 'Annulée'];
+  if (!statutsValides.includes(nouveauStatut)) {
+      throw new Error('Statut de livraison invalide');
+  }
+  const [result] = await db.execute(
+      `UPDATE commandes SET statut_livraison = ?, updated_at = NOW() WHERE public_id = ?`,
+      [nouveauStatut, this.public_id]
+  );
+  if (result.affectedRows === 0) throw new Error('Échec de la mise à jour');
+  this.statut_livraison = nouveauStatut;
+  return this;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static async findAllWithClientInfo() {
   const [rows] = await db.execute(`
       SELECT 
@@ -195,7 +305,16 @@ static async findAllWithClientInfo() {
           c.created_at as depositDate,
           c.date_livraison as expectedDate,
           CONCAT(u.prenom, ' ', u.nom) as client,
-          u.telephone as phone
+          u.telephone as phone,
+          c.adresse_collecte,
+          c.adresse_livraison,
+          c.livreur_id,
+          c.statut_livraison,
+          (SELECT CONCAT(prenom, ' ', nom) FROM users WHERE id = c.livreur_id) as livreur_nom,
+          (SELECT GROUP_CONCAT(DISTINCT s.nom SEPARATOR ', ') 
+           FROM details_commandes dc 
+           JOIN services s ON dc.service_id = s.id 
+           WHERE dc.commande_id = c.id) as service_nom
       FROM commandes c
       JOIN users u ON c.user_id = u.id
       ORDER BY c.created_at DESC
@@ -229,6 +348,36 @@ static async findAllWithClientInfo() {
     };
   }
 
+  // Récupérer les commandes avec les informations de livraison, avec filtre optionnel sur le statut
+static async findAllWithLivraisonInfo(statut = null) {
+  const params = [];
+  let sql = `
+      SELECT 
+          c.public_id as id,
+          c.reference,
+          c.montant_total as amount,
+          c.statut as status,
+          c.created_at as depositDate,
+          c.date_livraison as expectedDate,
+          CONCAT(u.prenom, ' ', u.nom) as client,
+          u.telephone as phone,
+          c.adresse_collecte,
+          c.adresse_livraison,
+          c.livreur_id,
+          c.statut_livraison,
+          (SELECT CONCAT(prenom, ' ', nom) FROM users WHERE id = c.livreur_id) as livreur_nom
+      FROM commandes c
+      JOIN users u ON c.user_id = u.id
+  `;
+  if (statut) {
+      sql += ` WHERE c.statut = ?`;
+      params.push(statut);
+  }
+  sql += ` ORDER BY c.created_at DESC`;
+  const [rows] = await db.execute(sql, params);
+  return rows;
+}
+
   toJSON() {
     return {
       public_id: this.public_id,
@@ -242,7 +391,8 @@ static async findAllWithClientInfo() {
       date_collecte: this.date_collecte,
       date_livraison: this.date_livraison,
       created_at: this.created_at,
-      updated_at: this.updated_at
+      updated_at: this.updated_at,
+      livreur_id: this.livreur_id
     };
   }
 }

@@ -8,7 +8,7 @@ export async function getAllCommandes(req, res) {
         res.json(commandes);
     } catch (error) {
         console.error("Erreur SQL :", error);
-        res.statut(500).json({ error: error.message });
+        res.status(500).json({ error: error.message })
     }
 }
 
@@ -16,7 +16,7 @@ export async function getCommandeDetails(req, res) {
     try {
         const { publicId } = req.params;
         const commande = await Commande.findByPublicId(publicId);
-        if (!commande) return res.statut(404).json({ error: 'Commande introuvable' });
+        if (!commande) return res.status(404).json({ error: 'Commande introuvable' });
 
         const details = await commande.getDetails();
         const client = await User.findById(commande.user_id);
@@ -47,33 +47,34 @@ export async function getCommandeDetails(req, res) {
         res.json(commandeData);
     } catch (error) {
         console.error('❌ Erreur getCommandeDetails:', error);
-        res.statut(500).json({ error: error.message });
+        res.status(500).json({ error: error.message })
     }
 }
 
-export async function updateCommandeStatut(req, res) {
+export async function updateCommandeStatus(req, res) {
+    console.log('📥 Corps reçu :', req.body);
+    console.log('📥 Status reçu :', req.body.status);
     try {
         const { publicId } = req.params;
-        const { statut } = req.body;
-        const commande = await Commande.findByPublicId(publicId);
-        if (!commande) return res.statut(404).json({ error: 'Commande introuvable' });
+        const { status } = req.body;
 
-        const statutMap = {
-            'En cours': 'En cours',
-            'Prête à retirer': 'Payée',
-            'Livrée': 'Livrée',
-            'Annulée': 'Annulée'
-        };
-        const nouveauStatut = statutMap[statut] || statut;
-        const statutsValides = ['En attente', 'Payée', 'En cours', 'Livrée', 'Annulée'];
-        if (!statutsValides.includes(nouveauStatut)) {
-            return res.statut(400).json({ error: 'Statut invalide' });
+        // Vérifier que status est valide
+        const statutsValides = ['En attente', 'Payée', 'Annulée', 'Livrée', 'Prêt'];
+        if (!statutsValides.includes(status)) {
+            return res.status(400).json({ error: 'Statut invalide' });
         }
-        await commande.updateStatut(nouveauStatut);
+
+        // Récupérer la commande
+        const commande = await Commande.findByPublicId(publicId);
+        if (!commande) return res.status(404).json({ error: 'Commande introuvable' });
+
+        // Appeler la méthode du modèle
+        await commande.updateStatut(status);
+
         res.json({ message: 'Statut mis à jour', commande: commande.toJSON() });
     } catch (error) {
         console.error('❌ Erreur updateStatus:', error);
-        res.statut(500).json({ error: error.message });
+        res.status(500).json({ error: error.message });
     }
 }
     
@@ -82,13 +83,13 @@ export async function updateCommandeDates(req, res) {
         const { publicId } = req.params;
         const { date_collecte, date_livraison } = req.body;
         const commande = await Commande.findByPublicId(publicId);
-        if (!commande) return res.statut(404).json({ error: 'Commande introuvable' });
+        if (!commande) return res.status(404).json({ error: 'Commande introuvable' });
         if (date_collecte) await commande.updateDateCollecte(date_collecte);
         if (date_livraison) await commande.updateDateLivraison(date_livraison);
         res.json({ message: 'Dates mises à jour', commande: commande.toJSON() });
     } catch (error) {
         console.error('❌ Erreur updateDates:', error);
-        res.statut(500).json({ error: error.message });
+        res.status(500).json({ error: error.message })
     }
 }
 
@@ -96,7 +97,7 @@ export async function supprimerCommande(req, res) {
     try {
         const { publicId } = req.params;
         const commande = await Commande.findByPublicId(publicId);
-        if (!commande) return res.statut(404).json({ error: 'Commande introuvable' });
+        if (!commande) return res.status(404).json({ error: 'Commande introuvable' });
         if (!['En attente', 'Annulée'].includes(commande.statut)) {
             return res.status(400).json({ error: 'Cette commande ne peut pas être supprimée' });
         }
@@ -105,7 +106,7 @@ export async function supprimerCommande(req, res) {
         res.json({ message: 'Commande supprimée avec succès' });
     } catch (error) {
         console.error('❌ Erreur suppression:', error);
-        res.statut(500).json({ error: error.message });
+        res.status(500).json({ error: error.message })
     }
 }
 
@@ -115,6 +116,6 @@ export async function getCommandesStats(req, res) {
         res.json(stats);
     } catch (error) {
         console.error('❌ Erreur stats:', error);
-        res.statut(500).json({ error: error.message });
+        res.status(500).json({ error: error.message })
     }
 }

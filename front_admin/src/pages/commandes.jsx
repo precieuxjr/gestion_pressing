@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import OrderDetails from '../components/OrderDetails';
 import { commandesService } from '../services/commandes';
 import { motion } from 'framer-motion';
-import { ReceiptText,Package,CircleX } from 'lucide-react';
+import { ReceiptText, Package, CircleX } from 'lucide-react';
 import { data } from 'react-router-dom';
 import NavBarHorizontal from '../components/navbar_horizontal';
 
@@ -11,8 +11,8 @@ export default function Commandes() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');  
-  const [selectedOrderData, setSelectedOrderData] = useState(null); 
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedOrderData, setSelectedOrderData] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [showNewOrderForm, setShowNewOrderForm] = useState(false);
 
@@ -64,7 +64,12 @@ export default function Commandes() {
     fetchOrders();
   };
 
-  const [statis, setStats] = useState({ total: 0, payees: 0, annulees: 0, livrees: 0 });
+  const [statis, setStats] = useState({
+    total: 0,
+    payees: 0,
+    annulees: 0,
+    livrees: 0,
+  });
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -73,11 +78,21 @@ export default function Commandes() {
     };
     fetchStats();
   }, []);
+  const updateStatus = async (orderId, newStatus) => {
+    try { console.log('📤 Envoi de la mise à jour :', { status: newStatus });
+    await commandesService.updateStatus(orderId, newStatus);
+
+      await fetchOrders(); // rafraîchit la liste
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    }
+  };
   const stats = [
     {
       id: 1,
       nom: 'Nombre des commandes',
-      icon:ReceiptText,
+      icon: ReceiptText,
       result: orders.length,
       style:
         'relative w-55 overflow-hidden rounded-xl bg²-linear-to-br from-white to-blue-50 p-4 shadow-sm border border-blue-100',
@@ -85,9 +100,10 @@ export default function Commandes() {
     {
       id: 2,
       nom: 'Commandes Payées ',
-      icon:ReceiptText,
-      result:statis.payees,
-      style: 'relative w-55 overflow-hidden rounded-xl bg-green-200 p-4   shadow-sm border border-blue-100',
+      icon: ReceiptText,
+      result: statis.payees,
+      style:
+        'relative w-55 overflow-hidden rounded-xl bg-green-200 p-4   shadow-sm border border-blue-100',
     },
     {
       id: 3,
@@ -100,8 +116,8 @@ export default function Commandes() {
     {
       id: 4,
       nom: 'Commandes à livrer',
-      icon:Package,
-      result:statis.livrees,
+      icon: Package,
+      result: statis.livrees,
       style:
         'relative w-55 overflow-hidden rounded-xl bg-red-200 p-4 shadow-sm border border-blue-100',
     },
@@ -127,21 +143,17 @@ export default function Commandes() {
     },
   };
 
-
-
-
-
   const handleSearch = (term) => {
     setSearchTerm(term);
   };
 
   return (
     <section className="flex flex-col bg-gray-50 min-h-screen w-250">
-     <NavBarHorizontal
-             buttonLabel="Nouvelle commande"
-             onButtonClick={() => console.log('Ajouter une commande')}
-             onSearch={handleSearch}
-           />
+      <NavBarHorizontal
+        buttonLabel="Nouvelle commande"
+        onButtonClick={() => console.log('Ajouter une commande')}
+        onSearch={handleSearch}
+      />
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -156,7 +168,7 @@ export default function Commandes() {
             className={item.style}
           >
             <div className="flex justify-between items-start">
-              <item.icon className={"w-6 h-6 text-blue-" }/>
+              <item.icon className={'w-6 h-6 text-blue-'} />
               <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
                 Unité
               </span>
@@ -204,17 +216,30 @@ export default function Commandes() {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                      
-                        <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Réf.</th>
-                        <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Client</th>
-                        <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tél.</th>
-                        <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Dépôt</th>
-                        <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Prévue</th>
-                        <th className="ppx-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Montant</th>
-                        <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Statut</th>
+                        <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                          Réf.
+                        </th>
+                        <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                          Client
+                        </th>
+                        <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                          Tél.
+                        </th>
+                        <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                          Dépôt
+                        </th>
+                        <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                          Prévue
+                        </th>
+                        <th className="ppx-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                          Montant
+                        </th>
+                        <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                          Statut
+                        </th>
                       </tr>
                     </thead>
-                    <tbody className='bg-white divide-y divide-gray-100'>
+                    <tbody className="bg-white divide-y divide-gray-100">
                       {filteredOrders.map((order) => (
                         <tr
                           key={order.id}
@@ -226,7 +251,6 @@ export default function Commandes() {
                               : ''
                           }`}
                         >
-                         
                           <td className="px-6 py-4 whitespace-nowrap">
                             {order.reference || order.id?.substring(0, 8)}
                           </td>
@@ -256,8 +280,25 @@ export default function Commandes() {
                               : '—'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                           *
-                          </td>
+  <select
+    value={order.status}
+    onChange={(e) => updateStatus(order.id, e.target.value)}
+    onClick={(e) => e.stopPropagation()}  // ← AJOUTEZ CETTE LIGNE
+    className={`text-xs px-2 py-1 rounded-full border ${
+      order.status === 'Livrée' ? 'bg-green-100 text-green-800' :
+      order.status === 'Payée' ? 'bg-blue-100 text-blue-800' :
+      order.status === 'Annulée' ? 'bg-red-100 text-red-800' :
+      order.status === 'Prêt' ? 'bg-purple-100 text-purple-800' :
+      'bg-yellow-100 text-yellow-800'
+    }`}
+  >
+    <option value="En attente">En attente</option>
+    <option value="Payée">Payée</option>
+    <option value="Annulée">Annulée</option>
+    <option value="Livrée">Livrée</option>
+    <option value="Prêt">Prêt</option>
+  </select>
+</td>
                         </tr>
                       ))}
                     </tbody>

@@ -5,10 +5,11 @@ export const commandesService = {
   getAll: () => apiFetch('/admin/commandes'),
   getStats: () => apiFetch('/admin/commandes/stats'),
   getById: (id) => apiFetch(`/admin/commandes/${id}`),
-  updateStatus: (id, statut) =>
+  updateStatus: (id, status) =>
     apiFetch(`/admin/commandes/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ statut }),
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
     }),
-  // autres méthodes (create, delete...)
+
+
 };
