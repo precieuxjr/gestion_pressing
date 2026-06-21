@@ -5,11 +5,11 @@ import { v4 as uuidv4 } from 'uuid';
 async function seedLivreurs() {
     try {
         const livreurs = [
-            { nom: 'Kalonji', prenom: 'Jean', email: 'jean.kalonji@livreur.com', telephone: '+243812345670', password: 'password123', adresse: 'Kinshasa, Gombe', postnom: 'Kalonji' },
-            { nom: 'Mbuyi', prenom: 'Marie', email: 'marie.mbuyi@livreur.com', telephone: '+243812345671', password: 'password123', adresse: 'Kinshasa, Lemba', postnom: 'Mbuyi' },
-            { nom: 'Tshibola', prenom: 'Paul', email: 'paul.tshibola@livreur.com', telephone: '+243812345672', password: 'password123', adresse: 'Kinshasa, Ngaliema', postnom: 'Tshibola' },
-            { nom: 'Lukusa', prenom: 'David', email: 'david.lukusa@livreur.com', telephone: '+243812345673', password: 'password123', adresse: 'Kinshasa, Kinshasa', postnom: 'Lukusa' },
-            { nom: 'Ilunga', prenom: 'Grace', email: 'grace.ilunga@livreur.com', telephone: '+243812345674', password: 'password123', adresse: 'Kinshasa, Kalamu', postnom: 'Ilunga' }
+            { nom: 'Kasongo', prenom: 'Pierre', email: 'pierre.kasongo@livreur.com', telephone: '+243812345675', password: 'password123', adresse: 'Kinshasa, Matete', postnom: 'Kasongo' },
+            { nom: 'Mwamba', prenom: 'Claire', email: 'claire.mwamba@livreur.com', telephone: '+243812345676', password: 'password123', adresse: 'Kinshasa, Limete', postnom: 'Mwamba' },
+            { nom: 'Kabila', prenom: 'Joseph', email: 'joseph.kabila@livreur.com', telephone: '+243812345677', password: 'password123', adresse: 'Kinshasa, Bandalungwa', postnom: 'Kabila' },
+            { nom: 'Sefu', prenom: 'Rachel', email: 'rachel.sefu@livreur.com', telephone: '+243812345678', password: 'password123', adresse: 'Kinshasa, Mont Ngafula', postnom: 'Sefu' },
+            { nom: 'Lumumba', prenom: 'Patrice', email: 'patrice.lumumba@livreur.com', telephone: '+243812345679', password: 'password123', adresse: 'Kinshasa, Nsele', postnom: 'Lumumba' }
         ];
 
         let inserted = 0;

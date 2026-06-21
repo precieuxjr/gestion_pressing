@@ -59,7 +59,7 @@ export async function updateCommandeStatus(req, res) {
         const { status } = req.body;
 
         // Vérifier que status est valide
-        const statutsValides = ['En attente', 'Payée', 'Annulée', 'Livrée', 'Prêt'];
+        const statutsValides = ['En attente', 'Payée', 'Annulée', 'Prêt', 'Retirer', 'Livrée'];
         if (!statutsValides.includes(status)) {
             return res.status(400).json({ error: 'Statut invalide' });
         }

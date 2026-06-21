@@ -1,168 +1,204 @@
 import React, { useState } from 'react';
-import Navbar from '../components/navbar';
+import { useNavigate } from 'react-router-dom';
 
+import Navbar from '../components/navbar';
+import StepButton from '../components/verif';
+import { 
+  Sparkles, Shirt, Scissors, Waves, Truck, 
+  Briefcase, Check, ShieldCheck, Plus, Package
+} from 'lucide-react';
 
 export default function ServicesPage() {
-  // État pour gérer les quantités de chaque service (0 par défaut)
-  const [quantities, setQuantities] = useState({
-    lavageRepassage: 2, // Initialisé à 2kg comme sur la photo
-    nettoyageSec: 1,    // Initialisé à 1 pièce comme sur la photo
-    blanchisserie: 2,   // Initialisé à 2kg comme sur la photo
-    chaussures: 0,
-    sacs: 0,
-    siegesAuto: 0,
-    rideauxTapis: 0,
-    vetementsBebe: 0,
-  });
+  // Tableau de tes nouveaux services sans les propriétés d'images inutilisées
+  const servicesList = [
+    {
+      id: 'nettoyageSec',
+      nom: 'Nettoyage à sec',
+      description: 'Nettoyage professionnel pour costumes, robes de soirée et textiles délicats avec des produits premium.',
+      objectif: ['Costumes & Tailleurs', 'Robes de soirée', 'Textiles délicats'],
+      icone: Sparkles,
+      price: 4000,
+      unit: "pièce",
+      color: "bg-purple-50 text-purple-500 dark:bg-purple-950/40 dark:text-purple-400"
+    },
+    {
+      id: 'blanchisserie',
+      nom: 'Blanchisserie',
+      description: 'Du linge impeccable, parfaitement lavé, repassé et plié. Service pour particuliers et professionnels.',
+      objectif: ['Chemises & Pantalons', 'Linge de maison', 'Service B2B'],
+      icone: Shirt,
+      price: 2500,
+      unit: "kg",
+      color: "bg-blue-50 text-blue-500 dark:bg-blue-950/40 dark:text-blue-400"
+    },
+    {
+      id: 'retoucheCouture',
+      nom: 'Retouche & Couture',
+      description: 'Ajustements, réparations et modifications par des mains expertes. Redonnez vie à vos vêtements.',
+      objectif: ['Ajustements sur mesure', 'Réparations', 'Modifications créatives'],
+      icone: Scissors,
+      price: 3000,
+      unit: "pièce",
+      color: "bg-orange-50 text-orange-500 dark:bg-orange-950/40 dark:text-orange-400"
+    },
+    {
+      id: 'repassage',
+      nom: 'Repassage',
+      description: 'Repassage professionnel sur table aspirante et soufflante pour un fini impeccable, sans faux plis.',
+      objectif: ['Chemises & Pantalons', 'Draps & Nappes', 'Service rapide'],
+      icone: Waves,
+      price: 2000,
+      unit: "pièce",
+      color: "bg-teal-50 text-teal-500 dark:bg-teal-950/40 dark:text-teal-400"
+    },
+    {
+      id: 'livraisonExpress',
+      nom: 'Livraison Express',
+      description: 'Nous récupérons vos vêtements à domicile et vous les retournons propres et emballés dans les meilleurs délais.',
+      objectif: ['Récupération à domicile', 'Livraison express à Kinshasa'],
+      icone: Truck,
+      price: 3500,
+      unit: "course",
+      color: "bg-red-50 text-red-500 dark:bg-red-950/40 dark:text-red-400"
+    },
+    {
+      id: 'serviceEntreprise',
+      nom: 'Service Entreprise',
+      description: "Prise en charge globale et entretien d'uniformes, nappes, serviettes et linge professionnel.",
+      objectif: ['Hôtels & Hébergements', 'Restaurants & Cafés', 'Salles de sport & Spas'],
+      icone: Briefcase,
+      price: 15000,
+      unit: "contrat",
+      color: "bg-indigo-50 text-indigo-500 dark:bg-indigo-950/40 dark:text-indigo-400"
+    },
+  ];
 
-  // État pour la coche de l'abonnement
+  // État des quantités calqué sur les identifiants
+  const [quantities, setQuantities] = useState(
+    servicesList.reduce((acc, s) => ({ ...acc, [s.id]: 0 }), {})
+  );
+
   const [isSubscribed, setIsSubscribed] = useState(false);
 
-  // Configuration des données des services (Prix et Unités)
-  const serviceDetails = {
-    lavageRepassage: { name: "Lavage & Repassage", price: 2500, unit: "kg" },
-    nettoyageSec: { name: "Nettoyage à sec", price: 4000, unit: "pièce" },
-    blanchisserie: { name: "Blanchisserie", price: 2000, unit: "kg" },
-    chaussures: { name: "Nettoyage Chaussures", price: 3000, unit: "paire" },
-    sacs: { name: "Nettoyage Sacs", price: 5000, unit: "pièce" },
-    siegesAuto: { name: "Nettoyage Sièges Auto", price: 10000, unit: "siège" },
-    rideauxTapis: { name: "Rideaux & Tapis", price: 3500, unit: "m²" },
-    vetementsBebe: { name: "Vêtements Bébé", price: 2000, unit: "pièce" },
-  };
+  const increment = (id) => setQuantities(prev => ({ ...prev, [id]: prev[id] + 1 }));
+  const decrement = (id) => setQuantities(prev => ({ ...prev, [id]: prev[id] > 0 ? prev[id] - 1 : 0 }));
+  const removeService = (id) => setQuantities(prev => ({ ...prev, [id]: 0 }));
 
-  // Fonctions pour modifier les quantités
-  const increment = (id) => {
-    setQuantities(prev => ({ ...prev, [id]: prev[id] + 1 }));
-  };
-
-  const decrement = (id) => {
-    setQuantities(prev => ({ ...prev, [id]: prev[id] > 0 ? prev[id] - 1 : 0 }));
-  };
-
-  const removeService = (id) => {
-    setQuantities(prev => ({ ...prev, [id]: 0 }));
-  };
-
-  // Calculs financiers dynamiques
-  const subtotal = Object.keys(quantities).reduce((acc, id) => {
-    return acc + (quantities[id] * serviceDetails[id].price);
-  }, 0);
-
-  const deliveryFee = subtotal > 0 ? 1000 : 0;
+  const subtotalBase = servicesList.reduce((acc, s) => acc + (quantities[s.id] * s.price), 0);
+  const discount = isSubscribed ? subtotalBase * 0.1 : 0;
+  const subtotal = subtotalBase - discount;
+  const deliveryFee = subtotal > 0 && subtotal < 20000 ? 2000 : 0;
   const total = subtotal + deliveryFee;
   
-  // Seuil pour la livraison gratuite (20 000 FCFA)
   const freeDeliveryThreshold = 20000;
   const missingForFreeDelivery = Math.max(0, freeDeliveryThreshold - subtotal);
   const progressPercentage = Math.min(100, (subtotal / freeDeliveryThreshold) * 100);
-
-  // Compteur d'articles distincts sélectionnés
   const selectedItemsCount = Object.values(quantities).filter(q => q > 0).length;
+  const navigate = useNavigate();
+    // ✅ Définition de handleClick
+    const handleClick = () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        // Connecté → action suivante
+        navigate('/etape-suivante');
+      } else {
+        // Non connecté → redirection vers login
+        navigate('/login?create=true');
+      }
+    };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] font-sans antialiased text-[#1E293B]">
-      
-      {/* 1. HEADER / NAVBAR (Fidèle à l'image) */}
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-300 antialiased">
       <Navbar />
 
-      {/* CONTENEUR PRINCIPAL */}
-      <main className="max-w-7xl mx-auto px-6 py-10">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         
-        {/* 2. INTRODUCTION SECTION */}
-        <div className="flex items-center gap-6 mb-12">
-          <div className="w-20 h-20 bg-blue-50 text-[#2563EB] rounded-full flex items-center justify-center shadow-inner relative">
-            {/* Icône Cintre & Bulles */}
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 21m0 0l-.813-5.096M9 21h7.5M12 3c-1.38 0-2.5 1.12-2.5 2.5V6h5V5.5C14.5 4.12 13.38 3 12 3zm0 3h.008v.008H12V6zm-5.25 3.75h10.5a.75.75 0 01.75.75v6.75a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 16.5V10.5a.75.75 0 01.75-.75z" />
-            </svg>
-            <span className="absolute top-2 right-2 w-3 h-3 bg-blue-400 rounded-full animate-ping"></span>
+        {/* EN-TÊTE PAGE */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 mb-10">
+          <div className="w-16 h-16 bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center shadow-inner relative shrink-0">
+            <Shirt className="w-8 h-8" />
+            <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-blue-500 rounded-full animate-ping"></span>
           </div>
           <div>
-            <h1 className="text-3xl font-extrabold text-[#0F172A] tracking-tight">Choisissez vos services</h1>
-            <p className="text-slate-500 mt-1 font-medium">Sélectionnez les services qui répondent à vos besoins. Nous nous occupons du reste !</p>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Configurez votre commande</h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 font-medium">Sélectionnez vos services de pressing et blanchisserie à Kinshasa.</p>
           </div>
         </div>
 
-        {/* 3. GRILLE DES SERVICES + PANNEAU DE SÉLECTION */}
+        {/* CONTENU EN GRILLE */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           
-          {/* COLONNE GAUCHE & MILIEU : LES SERVICES DISPONIBLES */}
+          {/* ZONE DE SÉLECTION DES CARTES */}
           <div className="lg:col-span-2">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-[#0F172A]">Nos services disponibles</h2>
-              <button className="flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2 rounded-xl text-sm font-semibold text-[#2563EB] shadow-sm transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
-                </svg>
-                Voir les packs
-              </button>
-            </div>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Prestations à la carte</h2>
 
-            {/* Grille responsive 2 colonnes */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {Object.keys(serviceDetails).map((id) => {
-                const service = serviceDetails[id];
-                const qte = quantities[id];
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {servicesList.map((service) => {
+                const qte = quantities[service.id];
                 const isSelected = qte > 0;
+                const Icone = service.icone;
 
                 return (
                   <div
-                    key={id}
-                    className={`bg-white rounded-2xl p-5 border-2 transition-all duration-300 relative flex flex-col justify-between h-56 shadow-sm ${
-                      isSelected ? 'border-[#2563EB] ring-4 ring-blue-500/5' : 'border-slate-100 hover:border-slate-200'
+                    key={service.id}
+                    className={`bg-white dark:bg-slate-900 rounded-2xl p-5 border transition-all duration-300 relative flex flex-col justify-between h-60 shadow-sm ${
+                      isSelected 
+                        ? 'border-blue-600 dark:border-blue-500 ring-4 ring-blue-500/5 dark:ring-blue-400/5' 
+                        : 'border-slate-100 dark:border-slate-800/60 hover:border-slate-200 dark:hover:border-slate-700'
                     }`}
                   >
-                    {/* Checkbox en haut à droite */}
+                    {/* Indicateur de coche haute-fidélité */}
                     <div className="absolute top-5 right-5">
                       <div className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all ${
-                        isSelected ? 'bg-[#2563EB] border-[#2563EB] text-white' : 'border-slate-200 bg-slate-50'
+                        isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800'
                       }`}>
-                        {isSelected && (
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
-                            <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
-                          </svg>
-                        )}
+                        {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                       </div>
                     </div>
 
-                    {/* Contenu : Icône / Nom / Prix */}
+                    {/* Détails textuels du service */}
                     <div className="flex gap-4">
-                      {/* Avatar SVG générique coloré simulant les différentes icônes de la photo */}
-                      <div className={`w-14 h-14 rounded-xl flex items-center justify-center font-bold shadow-inner ${
-                        id === 'lavageRepassage' ? 'bg-blue-50 text-blue-500' :
-                        id === 'nettoyageSec' ? 'bg-purple-50 text-purple-500' :
-                        id === 'blanchisserie' ? 'bg-teal-50 text-teal-500' : 'bg-orange-50 text-orange-500'
-                      }`}>
-                        {/* Remplacement des icônes par des visuels propres */}
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-7 h-7">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />
-                        </svg>
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${service.color}`}>
+                        <Icone className="w-6 h-6" />
                       </div>
-                      <div>
-                        <h3 className="font-bold text-[#0F172A] text-base">{service.name}</h3>
-                        <p className="text-[#2563EB] font-bold text-sm mt-0.5">
-                          {service.price.toLocaleString()} FCFA <span className="text-slate-400 font-medium text-xs">/ {service.unit}</span>
+                      <div className="flex-1">
+                        <h3 className="font-bold text-slate-900 dark:text-white text-base leading-tight">{service.nom}</h3>
+                        <p className="text-blue-600 dark:text-blue-400 font-extrabold text-sm mt-1">
+                          {service.price.toLocaleString()} <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500">FCFA / {service.unit}</span>
                         </p>
-                        <p className="text-slate-400 text-xs mt-2 leading-relaxed max-w-45">
-                          Lavage professionnel et traitement soigné.
+                        <p className="text-slate-400 dark:text-slate-400 text-xs mt-2 font-normal leading-relaxed line-clamp-2">
+                          {service.description}
                         </p>
+                        {/* Badges d'objectifs / cibles */}
+                        <div className="flex flex-wrap gap-1 mt-2.5">
+                          {service.objectif.map((obj, i) => (
+                            <span key={i} className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 targets-badge">
+                              {obj}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     </div>
 
-                    {/* Sélecteur de quantité numérique bas de carte */}
-                    <div className="flex items-center justify-between border-t border-slate-50 pt-4 mt-2">
+                    {/* Contrôle de quantité */}
+                    <div className="flex items-center justify-between border-t border-slate-50 dark:border-slate-800/50 pt-3">
                       <button 
-                        onClick={() => decrement(id)}
-                        className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 flex items-center justify-center text-slate-600 font-bold transition-colors cursor-pointer"
+                        onClick={() => decrement(service.id)}
+                        disabled={qte === 0}
+                        className={`w-8 h-8 rounded-lg border flex items-center justify-center font-bold transition-colors cursor-pointer select-none ${
+                          qte > 0 
+                            ? 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700' 
+                            : 'bg-slate-50/50 dark:bg-slate-900/50 border-slate-100 dark:border-slate-800/50 text-slate-300 dark:text-slate-700 cursor-not-allowed'
+                        }`}
                       >
                         –
                       </button>
-                      <span className="text-sm font-bold text-[#0F172A]">
-                        {qte} <span className="text-slate-400 font-medium text-xs">{service.unit}</span>
+                      <span className="text-sm font-bold text-slate-900 dark:text-white">
+                        {qte} <span className="text-slate-400 dark:text-slate-500 font-medium text-xs">{service.unit}</span>
                       </span>
                       <button 
-                        onClick={() => increment(id)}
-                        className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 flex items-center justify-center text-slate-600 font-bold transition-colors cursor-pointer"
+                        onClick={() => increment(service.id)}
+                        className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-center font-bold transition-colors cursor-pointer select-none"
                       >
                         +
                       </button>
@@ -173,52 +209,48 @@ export default function ServicesPage() {
               })}
             </div>
 
-            {/* Bouton additionnel Besoins Speciaux */}
-            <div className="mt-6 flex justify-center">
-              <button className="flex items-center gap-2 text-sm font-bold text-[#2563EB] hover:text-blue-700 bg-blue-50/50 hover:bg-blue-50 border border-dashed border-blue-200 rounded-xl px-6 py-3 w-full justify-center transition-all cursor-pointer">
-                <span>+</span> Besoin d'un service spécial ? <span className="text-slate-400 font-normal text-xs ml-1">Demandez un service sur mesure</span>
+            <div className="mt-6">
+              <button className="flex items-center gap-2 text-sm font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 bg-blue-50/40 dark:bg-blue-950/20 hover:bg-blue-50 dark:hover:bg-blue-950/40 border border-dashed border-blue-200 dark:border-blue-800/60 rounded-xl px-6 py-4 w-full justify-center transition-all cursor-pointer">
+                <Plus className="w-4 h-4" /> Besoin d'un service spécial ou sur-mesure ?
               </button>
             </div>
           </div>
 
-          {/* COLONNE DROITE : PANNEAU "VOTRE SÉLECTION" */}
-          <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-xl shadow-slate-200/50 flex flex-col justify-between">
+          {/* COLONNE RÉCAPITULATIF PANIER */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800/60 shadow-xl shadow-slate-200/40 dark:shadow-none flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-[#0F172A]">Votre sélection</h2>
-                <span className="w-6 h-6 rounded-full bg-[#2563EB] text-white flex items-center justify-center font-bold text-xs">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Votre Panier</h2>
+                <span className="w-6 h-6 rounded-full bg-blue-600 dark:bg-blue-500 text-white flex items-center justify-center font-bold text-xs">
                   {selectedItemsCount}
                 </span>
               </div>
 
-              {/* Liste des articles sélectionnés à droite */}
-              <div className="space-y-4 mb-6">
-                {Object.keys(quantities).map((id) => {
-                  const qte = quantities[id];
-                  const service = serviceDetails[id];
+              {/* Lignes d'articles sélectionnés */}
+              <div className="space-y-4 mb-6 max-h-64 overflow-y-auto pr-1">
+                {servicesList.map((service) => {
+                  const qte = quantities[service.id];
                   if (qte === 0) return null;
+                  const MiniIcone = service.icone;
 
                   return (
-                    <div key={id} className="flex items-center justify-between py-2 border-b border-slate-50">
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-[#2563EB]">
-                          {/* Mini Icône */}
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />
-                          </svg>
+                    <div key={service.id} className="flex items-center justify-between py-2 border-b border-slate-50 dark:border-slate-800/40">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 bg-slate-50 dark:bg-slate-800 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                          <MiniIcone className="w-4 h-4" />
                         </div>
                         <div>
-                          <h4 className="font-bold text-sm text-[#0F172A]">{service.name}</h4>
+                          <h4 className="font-bold text-sm text-slate-900 dark:text-white leading-tight">{service.nom}</h4>
                           <p className="text-xs text-slate-400 font-medium mt-0.5">{qte} {service.unit}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className="font-bold text-sm text-[#2563EB]">
-                          {(qte * service.price).toLocaleString()} FCFA
+                      <div className="flex items-center gap-2.5">
+                        <span className="font-extrabold text-sm text-blue-600 dark:text-blue-400">
+                          {(qte * service.price).toLocaleString()} <span className="text-[10px] font-normal text-slate-400">FCFA</span>
                         </span>
                         <button 
-                          onClick={() => removeService(id)}
-                          className="text-slate-300 hover:text-red-500 transition-colors text-sm font-bold px-1"
+                          onClick={() => removeService(service.id)}
+                          className="text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 transition-colors text-lg font-bold px-1 cursor-pointer"
                         >
                           ×
                         </button>
@@ -228,45 +260,48 @@ export default function ServicesPage() {
                 })}
 
                 {selectedItemsCount === 0 && (
-                  <p className="text-sm text-slate-400 text-center py-6 font-medium">Aucun service sélectionné pour le moment.</p>
+                  <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-8 font-medium">Votre panier est vide.</p>
                 )}
               </div>
 
-              {/* Totalisations intermédiaires */}
-              <div className="space-y-3 pt-4 border-t border-slate-100 text-sm font-medium text-slate-500">
+              {/* Lignes de calcul financiers */}
+              <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800/80 text-sm font-medium text-slate-500 dark:text-slate-400">
                 <div className="flex justify-between">
-                  <span>Sous-total</span>
-                  <span className="font-bold text-[#0F172A]">{subtotal.toLocaleString()} FCFA</span>
+                  <span>Sous-total brut</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{subtotalBase.toLocaleString()} FCFA</span>
                 </div>
+                {isSubscribed && (
+                  <div className="flex justify-between text-green-600 dark:text-green-400">
+                    <span>Remise Fidélité (-10%)</span>
+                    <span className="font-bold">- {discount.toLocaleString()} FCFA</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
-                  <span>Frais de livraison</span>
-                  <span className="font-bold text-[#0F172A]">{deliveryFee.toLocaleString()} FCFA</span>
+                  <span>Livraison</span>
+                  <span className="font-bold text-slate-900 dark:text-white">
+                    {deliveryFee > 0 ? `${deliveryFee.toLocaleString()} FCFA` : 'Gratuite'}
+                  </span>
                 </div>
-                <div className="flex justify-between text-base font-extrabold text-[#0F172A] pt-3 border-t border-slate-100">
-                  <span>Total</span>
-                  <span className="text-[#2563EB] text-lg">{total.toLocaleString()} FCFA</span>
+                <div className="flex justify-between text-base font-black text-slate-900 dark:text-white pt-3 border-t border-slate-100 dark:border-slate-800/80">
+                  <span>Total final</span>
+                  <span className="text-blue-600 dark:text-blue-400 text-lg font-black">{total.toLocaleString()} FCFA</span>
                 </div>
               </div>
 
-              {/* Composant de livraison offerte dynamique */}
-              <div className="mt-6 bg-blue-50/60 rounded-2xl p-4 border border-blue-100">
+              {/* Jauge Dynamique Livraison Gratuite */}
+              <div className="mt-6 bg-blue-50/60 dark:bg-blue-950/20 rounded-2xl p-4 border border-blue-100/60 dark:border-blue-900/30">
                 <div className="flex gap-3">
-                  <div className="text-[#2563EB] mt-0.5">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM19.5 18.75a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM2.25 5.25h16.5M19.5 5.25h2.25A1.5 1.5 0 0123 6.75V15a1.5 1.5 0 01-1.5 1.5H3.75A1.5 1.5 0 012.25 15V5.25zm0 0h1.5" />
-                    </svg>
-                  </div>
+                  <Truck className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
                   <div className="w-full">
-                    <h5 className="font-bold text-xs text-[#0F172A]">Livraison offerte dès 20 000 FCFA</h5>
+                    <h5 className="font-bold text-xs text-slate-900 dark:text-white">Livraison gratuite dès 20 000 FCFA</h5>
                     {missingForFreeDelivery > 0 ? (
-                      <p className="text-[11px] text-slate-400 font-medium mt-0.5">Il vous manque {missingForFreeDelivery.toLocaleString()} FCFA pour en profiter.</p>
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">Plus que {missingForFreeDelivery.toLocaleString()} FCFA pour économiser la livraison.</p>
                     ) : (
-                      <p className="text-[11px] text-green-600 font-bold mt-0.5">Félicitations ! Votre livraison est offerte !</p>
+                      <p className="text-[11px] text-green-600 dark:text-green-400 font-bold mt-0.5">Félicitations ! Frais offerts sur Kinshasa.</p>
                     )}
-                    {/* Barre de progression */}
-                    <div className="w-full bg-slate-200 h-2 rounded-full mt-3 overflow-hidden">
+                    <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full mt-2.5 overflow-hidden">
                       <div 
-                        className="bg-[#2563EB] h-full rounded-full transition-all duration-500" 
+                        className="bg-blue-600 dark:bg-blue-500 h-full rounded-full transition-all duration-500" 
                         style={{ width: `${progressPercentage}%` }}
                       ></div>
                     </div>
@@ -274,17 +309,14 @@ export default function ServicesPage() {
                 </div>
               </div>
 
-              {/* Bloc Switch Abonnement */}
-              <div className="mt-6 pt-4 border-t border-slate-100">
-                <h5 className="font-bold text-sm text-[#0F172A]">Souhaitez-vous un abonnement ?</h5>
-                <p className="text-xs text-slate-400 font-medium mt-0.5">Bénéficiez de remises et d'avantages exclusifs.</p>
-                
-                <div className="mt-4 bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between">
+              {/* Module de souscription récurrent d'abonnement */}
+              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800/80">
+                <h5 className="font-bold text-sm text-slate-900 dark:text-white">Activer un abonnement</h5>
+                <div className="mt-3 bg-slate-50 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800/40 rounded-xl p-3.5 flex items-center justify-between">
                   <div>
-                    <span className="font-bold text-xs text-[#0F172A] block">Oui, je m'abonne</span>
-                    <span className="text-[10px] text-green-600 font-bold bg-green-50 px-1.5 py-0.5 rounded mt-1 inline-block">-10% sur chaque commande</span>
+                    <span className="font-bold text-xs text-slate-900 dark:text-white block">Je m'abonne au pressing</span>
+                    <span className="text-[10px] text-green-600 dark:text-green-400 font-bold bg-green-50 dark:bg-green-950/30 px-1.5 py-0.5 rounded mt-1 inline-block">-10% immédiat</span>
                   </div>
-                  {/* Bouton Toggle / Switch HTML personnalisé */}
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input 
                       type="checkbox" 
@@ -292,27 +324,23 @@ export default function ServicesPage() {
                       onChange={() => setIsSubscribed(!isSubscribed)}
                       className="sr-only peer" 
                     />
-                    <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#2563EB]"></div>
+                    <div className="w-9 h-5 bg-slate-200 dark:bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 dark:after:border-slate-600 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 dark:peer-checked:bg-blue-500"></div>
                   </label>
                 </div>
               </div>
 
             </div>
 
-            {/* Bouton étape suivante d'action principale */}
+            {/* CTA Final */}
             <div className="mt-8 space-y-4">
-              <button className="w-full bg-[#2563EB] hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-2xl flex items-center justify-center gap-3 transition-all duration-300 shadow-lg shadow-blue-500/20 transform hover:-translate-y-0.5 cursor-pointer">
-                <span>Étape suivante</span>
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                </svg>
-              </button>
-
-              <div className="flex items-center justify-center gap-2 text-xs font-semibold text-slate-400">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4 text-green-500">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-                </svg>
-                Paiement 100% sécurisé
+            <StepButton
+  onClick={handleClick}
+  label="Passer à l'étape suivante"
+  className="w-full bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white font-bold py-4 px-6 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 shadow-lg shadow-blue-500/10 transform hover:-translate-y-0.5 cursor-pointer"
+/>
+              <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-400 dark:text-slate-500">
+                <ShieldCheck className="w-4 h-4 text-green-500" />
+                Traitement et suivi sécurisés
               </div>
             </div>
 
@@ -320,39 +348,25 @@ export default function ServicesPage() {
 
         </div>
 
-        {/* 4. FOOTER BAR : LES ENGAGEMENTS ET ATOUTS (Bas de la photo) */}
-        <footer className="mt-16 bg-white border border-slate-100 rounded-3xl p-6 grid grid-cols-2 md:grid-cols-4 gap-6 text-center shadow-sm">
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-[#2563EB]">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM19.5 18.75a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM2.25 5.25h16.5" /></svg>
-            </div>
-            <span className="font-bold text-xs text-[#0F172A]">Livraison rapide</span>
-            <span className="text-[10px] text-slate-400 font-medium -mt-1">À domicile ou au bureau</span>
-          </div>
-
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-[#2563EB]">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            </div>
-            <span className="font-bold text-xs text-[#0F172A]">Qualité garantie</span>
-            <span className="text-[10px] text-slate-400 font-medium -mt-1">Service professionnel</span>
-          </div>
-
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-[#2563EB]">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.214.133a1.583 1.583 0 001.514 0l.214-.133V13.6h-1.943zm-.458-5.323a1.583 1.583 0 011.514 0l.214.133v1.942H11.32z" /></svg>
-            </div>
-            <span className="font-bold text-xs text-[#0F172A]">Prix transparents</span>
-            <span className="text-[10px] text-slate-400 font-medium -mt-1">Aucun frais caché</span>
-          </div>
-
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-[#2563EB]">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" /></svg>
-            </div>
-            <span className="font-bold text-xs text-[#0F172A]">Support 24/7</span>
-            <span className="text-[10px] text-slate-400 font-medium -mt-1">Nous sommes là pour vous</span>
-          </div>
+        {/* REASSURANCES BAS DE PAGE */}
+        <footer className="mt-16 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/60 rounded-3xl p-6 grid grid-cols-2 md:grid-cols-4 gap-6 text-center shadow-sm">
+          {[
+            { title: "Livraison Rapide", desc: "À domicile à Kinshasa", icon: Truck },
+            { title: "Qualité Garantie", desc: "Soin textile expert", icon: ShieldCheck },
+            { title: "Prix Transparents", desc: "Zéro frais cachés", icon: Package },
+            { title: "Support Client", desc: "À votre écoute", icon: Shirt }
+          ].map((item, index) => {
+            const FootIcon = item.icon;
+            return (
+              <div key={index} className="flex flex-col items-center gap-1.5">
+                <div className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-800/80 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                  <FootIcon className="w-4 h-4" />
+                </div>
+                <span className="font-bold text-xs text-slate-900 dark:text-white">{item.title}</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium -mt-0.5">{item.desc}</span>
+              </div>
+            );
+          })}
         </footer>
 
       </main>

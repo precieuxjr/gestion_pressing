@@ -15,6 +15,7 @@ export default function Commandes() {
   const [selectedOrderData, setSelectedOrderData] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [showNewOrderForm, setShowNewOrderForm] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('Tous');
 
   // Récupérer toutes les commandes
   const fetchOrders = useCallback(async () => {
@@ -50,15 +51,16 @@ export default function Commandes() {
     }
   };
 
-  const handleCloseDetails = () => setSelectedOrderData(null);
-
   const filteredOrders = orders.filter((order) => {
     const client = (order.client || '').toLowerCase();
     const id = (order.id || '').toLowerCase();
     const term = searchTerm.toLowerCase();
-    return client.includes(term) || id.includes(term);
+    const matchSearch = client.includes(term) || id.includes(term);
+    const matchStatus = statusFilter === 'Tous' || order.status === statusFilter;
+    return matchSearch && matchStatus;
   });
 
+  const handleCloseDetails = () => setSelectedOrderData(null);
   const handleOrderCreated = () => {
     setShowNewOrderForm(false);
     fetchOrders();
@@ -147,6 +149,43 @@ export default function Commandes() {
     setSearchTerm(term);
   };
 
+
+  const handleExportCSV = () => {
+    const headers = ['Référence', 'Client', 'Téléphone', 'Date dépôt', 'Date prévue', 'Montant', 'Statut'];
+    
+    const escapeCSV = (value) => {
+      if (value === null || value === undefined) return '';
+      const str = String(value);
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+  
+    const rows = filteredOrders.map((order) => [
+      escapeCSV(order.reference || order.id?.substring(0, 8) || ''),
+      escapeCSV(order.client || ''),
+      escapeCSV(order.phone || ''),
+      escapeCSV(order.depositDate ? new Date(order.depositDate).toLocaleDateString('fr-FR') : ''),
+      escapeCSV(order.expectedDate ? new Date(order.expectedDate).toLocaleDateString('fr-FR') : ''),
+      escapeCSV(order.amount ? `${order.amount.toLocaleString()} FC` : ''),
+      escapeCSV(order.status || ''),
+    ]);
+  
+    const BOM = '\uFEFF';
+    const csvContent = BOM + [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+  
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.download = `commandes_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <section className="flex flex-col bg-gray-50 min-h-screen w-250">
       <NavBarHorizontal
@@ -194,14 +233,35 @@ export default function Commandes() {
             <div className="bg-white rounded-lg shadow overflow-hidden">
               <div className="p-4 border-b flex justify-between items-center">
                 <h2 className="font-semibold">Toutes les commandes</h2>
-                <div className="flex gap-2">
-                  <button className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1">
-                    Filtrer
-                  </button>
-                  <button className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1">
-                    Exporter
-                  </button>
-                </div>
+                <div className="flex gap-2 items-center">
+  <select
+    value={statusFilter}
+    onChange={(e) => setStatusFilter(e.target.value)}
+    className="text-xs border rounded px-2 py-1 bg-white"
+  >
+    <option value="Tous">Tous les statuts</option>
+    <option value="Payée">Payée</option>
+    <option value="Annulée">Annulée</option>
+    <option value="Retirer">Retirer</option>
+    <option value="Prêt">Prêt</option>
+    <option value="En attente">En attente</option>
+    <option value="Livrée">Livrée</option>
+  </select>
+  {statusFilter !== 'Tous' && (
+    <button
+      onClick={() => setStatusFilter('Tous')}
+      className="text-xs text-blue-500 hover:text-blue-700"
+    >
+      Réinitialiser
+    </button>
+  )}
+  <button
+      onClick={handleExportCSV}
+      className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1"
+    >
+      Exporter
+    </button>
+</div>
               </div>
               <div className="overflow-x-auto">
                 {loading && (
@@ -276,7 +336,7 @@ export default function Commandes() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             {order.amount
-                              ? `${order.amount.toLocaleString()} FCFA`
+                              ? `${order.amount.toLocaleString()} FC`
                               : '—'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -285,17 +345,17 @@ export default function Commandes() {
     onChange={(e) => updateStatus(order.id, e.target.value)}
     onClick={(e) => e.stopPropagation()}  // ← AJOUTEZ CETTE LIGNE
     className={`text-xs px-2 py-1 rounded-full border ${
-      order.status === 'Livrée' ? 'bg-green-100 text-green-800' :
-      order.status === 'Payée' ? 'bg-blue-100 text-blue-800' :
+      order.status === 'Retirer' ? 'bg-blue-100 text-blue-800' :
+      order.status === 'Payée' ? 'bg-blue-100 text-green-800' :
       order.status === 'Annulée' ? 'bg-red-100 text-red-800' :
-      order.status === 'Prêt' ? 'bg-purple-100 text-purple-800' :
+      order.status === 'Prêt' ? 'bg-purple-100 text-orange-800' :
       'bg-yellow-100 text-yellow-800'
     }`}
   >
-    <option value="En attente">En attente</option>
+    
     <option value="Payée">Payée</option>
     <option value="Annulée">Annulée</option>
-    <option value="Livrée">Livrée</option>
+    <option value="Retirer">Retirer</option>
     <option value="Prêt">Prêt</option>
   </select>
 </td>
@@ -511,7 +571,7 @@ function NouvelleCommandeInline({ onSuccess, onCancel }) {
                 >
                   <span className="font-medium">{service.nom}</span>
                   <span className="block text-gray-500">
-                    {service.prixBase.toLocaleString()} FCFA
+                    {service.prixBase.toLocaleString()} FC
                   </span>
                 </button>
               );
@@ -533,7 +593,7 @@ function NouvelleCommandeInline({ onSuccess, onCancel }) {
               ))}
               <div className="font-bold flex justify-between pt-1 border-t mt-1">
                 <span>Total</span>
-                <span>{montantTotal.toLocaleString()} FCFA</span>
+                <span>{montantTotal.toLocaleString()} FC</span>
               </div>
             </div>
           )}

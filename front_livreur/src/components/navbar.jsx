@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -10,6 +11,19 @@ import {
 
 export default function NavLivreur() {
   const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const decoded = JSON.parse(atob(token.split('.')[1]));
+        setUser(decoded);
+      } catch (e) {
+        console.error('Erreur décodage token', e);
+      }
+    }
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -106,8 +120,21 @@ export default function NavLivreur() {
         </NavLink>
       </div>
 
-      {/* Pied : déconnexion */}
+      {/* Profil du livreur */}
       <div className="p-4 border-t border-gray-100">
+        <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-gray-50 mb-3">
+          <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm">
+            {user ? `${user.prenom?.charAt(0)}${user.nom?.charAt(0)}` : '?'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-gray-800 truncate">
+              {user ? `${user.prenom} ${user.nom}` : 'Chargement...'}
+            </p>
+            <p className="text-xs text-gray-500 truncate">
+              {user?.role === 'livreur' ? 'Livreur' : 'Utilisateur'}
+            </p>
+          </div>
+        </div>
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-all duration-200"

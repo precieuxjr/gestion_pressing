@@ -1,12 +1,13 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import authRoutes from './routes/admin/authRoutes.js';
 import adminCommandeRoutes from './routes/admin/commandeRoutes.js';
 import clientRoutes from './routes/admin/clientRoutes.js';
 import servicesRoutes from './routes/admin/servicesRoutes.js';
 import paiementRoutes from './routes/admin/paiementRoutes.js';
 import livraisonRoutes from './routes/admin/livraisonRoutes.js';
+import livreurRoutes from './routes/livreur/commandesRoutes.js';
+import authRoutes from './routes/client/authRoutes.js';
 
 dotenv.config();
 const app = express();
@@ -20,6 +21,13 @@ app.get('/backend', (req, res) => {
     message: "Bienvenue sur l'API du Pressing !"
   });
 });
+/*client */
+app.use('/api/auth', authRoutes);
+
+/*========= */
+
+app.use('/api/livreur', livreurRoutes);
+
 
 // Route d'authentification (avant le 404)
 app.use('/api/auth', authRoutes);

@@ -21,8 +21,8 @@ export const livraisonService = {
           return apiFetch(url);
       },
   
-    libererLivreur: (livreurId) =>
-        apiFetch(`/admin/livraisons/livreurs/${livreurId}/liberer`, {
-            method: 'PATCH',
+      annulerAssignation: (commandeId) =>
+        apiFetch(`/admin/livraisons/commandes/${commandeId}/assignation`, {
+          method: 'DELETE',
         }),
 };

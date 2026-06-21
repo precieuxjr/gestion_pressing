@@ -190,6 +190,7 @@ export default function Dashboard() {
               Gérez les opérations quotidiennes, analysez les tendances et
               améliorez la satisfaction client
             </p>
+            <Link to="/admin/clients">
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -197,6 +198,7 @@ export default function Dashboard() {
             >
               Evolution Clientele
             </motion.button>
+            </Link>
           </div>
           <div className="relative w-30 h-30 mx-10 px-4">
             <motion.img

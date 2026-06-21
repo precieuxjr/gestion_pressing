@@ -8,10 +8,13 @@ import {
     modifierAdresseLivraison
 } from '../../controllers/client/CommandeController.js';
 
+
 const router = express.Router();
 
 router.use(authMiddleware); // Toutes les routes nécessitent authentification
 
+router.post('/login', login);
+router.post('/register', register);
 router.post('/', creerCommande);
 router.get('/', getMesCommandes);
 router.get('/:publicId', getCommandeDetails);

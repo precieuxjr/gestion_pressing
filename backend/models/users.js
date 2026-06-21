@@ -19,50 +19,42 @@ export default class User {
   }
 
   async enregistrement() {
-
+    // 1. Nettoyer les champs
     if (this.prenom) this.prenom = this.prenom.trim().toLowerCase();
     if (this.nom) this.nom = this.nom.trim().toLowerCase();
-    if (this.postnom) this.postnom = this.postnom.trim().toLowerCase();
+    if (this.postnom) this.postnom = this.postnom.trim().toLowerCase(); // optionnel
     if (this.adresse) this.adresse = this.adresse.trim().toLowerCase();
     if (this.email) this.email = this.email.trim().toLowerCase();
     if (this.telephone) this.telephone = this.telephone.trim();
-
-    if (
-      !this.prenom ||
-      !this.nom ||
-      !this.postnom ||
-      !this.adresse ||
-      !this.email ||
-      !this.telephone
-    ) {
-      throw new Error('veuillez remplir tous les champs !');
+  
+    // 2. Valeur par défaut pour postnom
+    if (!this.postnom) this.postnom = '';
+  
+    // 3. Validation des champs OBLIGATOIRES (sans postnom)
+    if (!this.prenom || !this.nom || !this.adresse || !this.email || !this.telephone) {
+      throw new Error('veuillez remplir tous les champs obligatoires !');
     }
-
+  
+    // 4. Vérification de la longueur du mot de passe
     if (this.password.length < 6) {
-      throw new Error(
-        ' veuillez saisir un mot de passse contenant au moins 6 caractères '
-      );
+      throw new Error('le mot de passe doit contenir au moins 6 caractères');
     }
-
-    const [row] = await db.execute('SELECT id FROM users WHERE email = ? ', [
-      this.email,
-    ]);
-
+  
+    // 5. Vérifier si l'email existe déjà
+    const [row] = await db.execute('SELECT id FROM users WHERE email = ?', [this.email]);
     if (row.length > 0) {
-      throw new Error('Un compte existe dejà avec cet email ');
+      throw new Error('Un compte existe déjà avec cet email');
     }
-
-    //hash du mot de passe
+  
+    // 6. Hasher le mot de passe
     const hash_password = await bcrypt.hash(this.password, 10);
-   
-    // id publique
-
     this.public_id = uuidv4();
-
+  
+    // 7. Insertion (avec postnom)
     const [result] = await db.execute(
       `INSERT INTO users 
-(public_id, nom, prenom, email, password , telephone, role, adresse) 
-VALUES (?, ?, ?, ?, ?, ?, ? ,?)`,
+       (public_id, nom, prenom, email, password, telephone, role, adresse, postnom) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         this.public_id,
         this.nom,
@@ -71,34 +63,33 @@ VALUES (?, ?, ?, ?, ?, ?, ? ,?)`,
         hash_password,
         this.telephone,
         this.role,
-        this.adresse
+        this.adresse,
+        this.postnom   // ← ajout de postnom
       ]
     );
     delete this.password;
   }
-  static async findAll() {
-    const [rows] = await db.execute('SELECT * FROM users');
-
-    return rows.map((row) => new User(row));
+  // models/users.js
+static async findById(identifier) {
+  // Si identifier ressemble à un UUID (contient des tirets), chercher par public_id
+  if (typeof identifier === 'string' && identifier.includes('-')) {
+    const [rows] = await db.execute(
+      `SELECT id, public_id, nom, prenom, email, telephone, adresse, disponibilite, role
+       FROM users 
+       WHERE public_id = ?`,
+      [identifier]
+    );
+    return rows[0] || null;
+  } else {
+    // Sinon, chercher par id numérique
+    const [rows] = await db.execute(
+      `SELECT id, public_id, nom, prenom, email, telephone, adresse, disponibilite, role
+       FROM users 
+       WHERE id = ?`,
+      [Number(identifier)]
+    );
+    return rows[0] || null;
   }
-  
-  
-  static async findById(id) {
-    console.log('🔍 User.findById appelé avec id:', id);
-    try {
-        const [rows] = await db.execute(
-            `SELECT public_id, nom, prenom, postnom, email, telephone, adresse, 
-                    role, email_verifie, statut, disponibilite, created_at 
-             FROM users 
-             WHERE id = ?`,
-            [id]
-        );
-        console.log('📊 Résultat:', rows.length > 0 ? 'trouvé' : 'non trouvé');
-        return rows.length ? new User(rows[0]) : null;
-    } catch (error) {
-        console.error('❌ Erreur dans findById:', error);
-        throw error;
-    }
 }
 
 
@@ -135,19 +126,13 @@ VALUES (?, ?, ?, ?, ?, ?, ? ,?)`,
   }
 
   static async findByEmail(email) {
-    if (!email|| email.trim()==='') {
-      throw new Error('email vide : veuillez saisir une email valide');
-    }
-
-    const [rows] =await  db.execute(`SELECT * FROM users WHERE email = ?  `, [email]);
-
-    if (rows.length == 0) {
-      throw Error("email saisi n'existe pas veuillez saisir un email existant"); 
-    }
-    return new User(rows[0]);
-    
+    if (!email) return null;
+    const [rows] = await db.execute(
+      'SELECT * FROM users WHERE email = ?',
+      [email.trim().toLowerCase()]
+    );
+    return rows.length > 0 ? rows[0] : null;
   }
-
   static async findAllClients() {
     const [rows] = await db.execute(
         `SELECT public_id, nom, postnom, prenom, email, telephone, adresse, 
@@ -213,27 +198,45 @@ static async findAllLivreurs() {
 }
 
 // Récupérer uniquement les livreurs disponibles
+// models/users.js
 static async findAvailableLivreurs() {
-  const [rows] = await db.execute(
-      `SELECT public_id, nom, prenom, telephone, disponibilite
-       FROM users
-       WHERE role = 'livreur' AND disponibilite = 'Disponible'
-       ORDER BY nom ASC`
-  );
+  const [rows] = await db.execute(`
+    SELECT 
+        u.public_id,
+        u.nom,
+        u.prenom,
+        u.telephone,
+        u.disponibilite,
+        (SELECT COUNT(*) 
+         FROM commandes c 
+         WHERE c.livreur_id = u.id 
+           AND c.statut_livraison IN ('En cours', 'Collectée')
+        ) AS commandes_actives
+    FROM users u
+    WHERE u.role = 'livreur'
+      AND u.disponibilite IN ('Disponible', 'En livraison')   -- ← doit contenir 'En livraison'
+      AND (SELECT COUNT(*) 
+           FROM commandes c 
+           WHERE c.livreur_id = u.id 
+             AND c.statut_livraison IN ('En cours', 'Collectée')
+          ) < 5
+    ORDER BY u.nom ASC
+  `);
   return rows;
 }
-
 // Mettre à jour la disponibilité d'un livreur
-static async updateDisponibilite(userId, statut) {
+// models/users.js
+static async updateDisponibilite(publicId, statut) {
   const statutsValides = ['Disponible', 'En livraison', 'Indisponible'];
   if (!statutsValides.includes(statut)) {
-      throw new Error('Statut de disponibilité invalide');
+    throw new Error('Statut de disponibilité invalide');
   }
   const [result] = await db.execute(
-      `UPDATE users SET disponibilite = ? WHERE id = ?`,
-      [statut, userId]
+    `UPDATE users SET disponibilite = ?, updated_at = NOW() WHERE public_id = ?`,
+    [statut, publicId]
   );
-  return result.affectedRows > 0;
+  if (result.affectedRows === 0) throw new Error('Utilisateur introuvable');
+  return true;
 }
 
 async desactiverCompte() {
@@ -302,14 +305,29 @@ static async getPublicIdByEmail(email) {
   return user ? user.public_id : null;
 }
 
-// Récupérer les livreurs disponibles
+
+
+
+
 static async findAvailableLivreurs() {
-  const [rows] = await db.execute(
-      `SELECT id, public_id, nom, prenom, telephone, disponibilite
-       FROM users
-       WHERE role = 'livreur' AND disponibilite = 'Disponible'
-       ORDER BY nom ASC`
-  );
+  const [rows] = await db.execute(`
+    SELECT 
+        u.id,                        -- on garde l'id numérique si besoin
+        u.public_id,
+        u.nom,
+        u.prenom,
+        u.telephone,
+        u.disponibilite
+    FROM users u                     -- ← alias 'u' sur la table principale
+    WHERE u.role = 'livreur' 
+      AND u.disponibilite IN ('Disponible', 'En livraison')
+      AND (SELECT COUNT(*) 
+           FROM commandes c 
+           WHERE c.livreur_id = u.id  -- ← maintenant 'u.id' est valide
+             AND c.statut_livraison IN ('En cours', 'Collectée')
+          ) < 5
+    ORDER BY u.nom ASC
+  `);
   return rows;
 }
 
@@ -323,20 +341,47 @@ static async findAllLivreurs() {
   );
   return rows;
 }
-
-// Mettre à jour la disponibilité d'un livreur
-static async updateDisponibilite(userId, statut) {
+// Mettre à jour la disponibilité d'un livreur en utilisant le public_id (UUID)
+static async updateDisponibilite(publicId, statut) {
   const statutsValides = ['Disponible', 'En livraison', 'Indisponible'];
   if (!statutsValides.includes(statut)) {
       throw new Error('Statut de disponibilité invalide');
   }
   const [result] = await db.execute(
-      `UPDATE users SET disponibilite = ?, updated_at = NOW() WHERE id = ?`,
-      [statut, userId]
+      `UPDATE users SET disponibilite = ?, updated_at = NOW() WHERE public_id = ?`,
+      [statut, publicId]
   );
   if (result.affectedRows === 0) throw new Error('Utilisateur introuvable');
   return true;
 }
+
+
+
+
+// models/users.js
+
+/**
+ * Met à jour le profil d'un utilisateur (champs de base)
+ * @param {string} publicId - UUID de l'utilisateur
+ * @param {Object} data - { nom, prenom, telephone, adresse }
+ * @returns {Promise<Object>} - L'utilisateur mis à jour (sans mot de passe)
+ */
+static async updateProfile(publicId, data) {
+  const { nom, prenom, telephone, adresse } = data;
+  await db.execute(
+    `UPDATE users 
+     SET nom = ?, prenom = ?, telephone = ?, adresse = ?, updated_at = NOW()
+     WHERE public_id = ?`,
+    [nom, prenom, telephone, adresse, publicId]
+  );
+  // Retourner l'utilisateur mis à jour sans le mot de passe
+  const updated = await this.findByPublicId(publicId);
+  if (updated) delete updated.password;
+  return updated;
+}
+
+
+
 
 }
 

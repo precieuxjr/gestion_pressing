@@ -189,19 +189,19 @@ export default function Paiements() {
         },
         {
           id: 2,
-          nom: 'Montant total (FCFA)',
+          nom: 'Montant total (FC)',
           valeur: (stats.montant_total || 0).toLocaleString(),
           color: 'from-white to-green-50',
         },
         {
           id: 3,
-          nom: 'Montant validé (FCFA)',
+          nom: 'Montant validé (FC)',
           valeur: (stats.montant_valide || 0).toLocaleString(),
           color: 'from-white to-emerald-50',
         },
         {
           id: 4,
-          nom: 'Montant remboursé (FCFA)',
+          nom: 'Montant remboursé (FC)',
           valeur: (stats.montant_rembourse || 0).toLocaleString(),
           color: 'from-white to-red-50',
         },
@@ -410,7 +410,7 @@ export default function Paiements() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Montant (FCFA) *
+                        Montant (FC) *
                       </label>
                       <input
                         type="number"

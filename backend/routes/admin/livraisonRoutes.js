@@ -6,8 +6,9 @@ import {
     getLivreursDisponibles,
     getAllLivreurs,
     assignerLivreur,
+    annulerAssignation,
     updateStatutLivraison,
-    libererLivreur
+    
 } from '../../controllers/admin/LivraisonController.js';
 
 const router = express.Router();
@@ -20,6 +21,8 @@ router.get('/livreurs', getAllLivreurs);
 
 router.patch('/commandes/:publicId/assigner', assignerLivreur);
 router.patch('/commandes/:publicId/statut', updateStatutLivraison);
-router.patch('/livreurs/:livreurId/liberer', libererLivreur);
+
+// Annuler l'assignation d'une commande (admin)
+router.delete('/commandes/:publicId/assignation', annulerAssignation);
 
 export default router;

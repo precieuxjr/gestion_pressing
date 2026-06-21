@@ -4,11 +4,12 @@ import Specialities from "../components/specialite";
 
 export default function Expertise() {
   const sectionRef = useRef(null);
-  const isInView = useInView(sectionRef, { once: true, amount: 0.2 });
+  // Un seuil (amount) à 0.15 est souvent plus fluide sur mobile
+  const isInView = useInView(sectionRef, { once: true, amount: 0.15 });
 
   // Variants pour l'en-tête
   const headerVariants = {
-    hidden: { y: -40, opacity: 0 },
+    hidden: { y: -20, opacity: 0 },
     visible: { y: 0, opacity: 1, transition: { duration: 0.6, ease: 'easeOut' } },
   };
 
@@ -18,36 +19,36 @@ export default function Expertise() {
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.5, delay: 0.2, ease: 'easeOut' },
+      transition: { duration: 0.6, delay: 0.15, ease: [0.215, 0.610, 0.355, 1.000] },
     },
   };
 
   return (
     <section
       ref={sectionRef}
-      className="py-12 sm:py-16 md:py-20 lg:py-24 min-h-screen"
+      className="py-16 sm:py-24 min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300 balance-edges"
     >
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        {/* En-tête animé */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* En-tête de section */}
         <motion.div
           initial="hidden"
           animate={isInView ? 'visible' : 'hidden'}
           variants={headerVariants}
-          className="text-center mb-8 sm:mb-12 md:mb-16"
+          className="text-center mb-12 sm:mb-20"
         >
-          <h2 className="text-blue-500 font-bold text-xs sm:text-sm tracking-[0.2em] sm:tracking-[0.3em] uppercase">
-            NOTRE EXPERTISE
+          <p className="text-blue-600 dark:text-blue-400 font-bold text-xs sm:text-sm tracking-[0.25em] uppercase">
+            Notre Expertise
+          </p>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight mt-3 text-slate-900 dark:text-white">
+            Nos Spécialités
           </h2>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black uppercase tracking-tighter mt-2">
-            NOS SPÉCIALITÉS
-          </h1>
-          <div className="w-20 sm:w-24 h-1 bg-yellow-500 mx-auto my-4 sm:my-6 rounded-full" />
-          <p className="text-gray-500 italic max-w-2xl mx-auto text-sm sm:text-base px-4">
-            Un savoir-faire unique reconnu par le titre de Meilleur Ouvrier du Congo
+          <p className="text-slate-500 dark:text-slate-400 max-w-2xl mx-auto text-base sm:text-lg mt-4 font-normal">
+            Un savoir-faire artisanal de haute technicité, dédié à la préservation et à l'éclat de vos pièces les plus précieuses.
           </p>
         </motion.div>
 
-        {/* Contenu principal animé */}
+        {/* Contenu principal (Grille ou liste gérée par Specialities) */}
         <motion.div
           initial="hidden"
           animate={isInView ? 'visible' : 'hidden'}
@@ -55,6 +56,7 @@ export default function Expertise() {
         >
           <Specialities />
         </motion.div>
+
       </div>
     </section>
   );

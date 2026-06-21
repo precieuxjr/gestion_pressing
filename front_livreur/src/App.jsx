@@ -14,7 +14,7 @@ const DeliveryLayout = () => {
   return (
     <div className="flex relative">
       <NavLivreur />
-      <main className="flex-1 ml-72 p-6">
+      <main className="  min-h-screen ml-72 overflow-x-hidden">
         <Outlet />
       </main>
     </div>

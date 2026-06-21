@@ -10,9 +10,9 @@ import Livraisons from './pages/livraison';
 import Parametres from './pages/parametre';
 const AdminLayout = () => {
   return (
-    <div className="flex relative">
-      <Navbar  /> 
-      <main className="flex-1 mx-72  ">
+    <div className="flex relative min-h-screen">
+      <Navbar /> 
+      <main className="flex-1 ml-72 overflow-x-hidden ">
         <Outlet />
       </main>
     </div>

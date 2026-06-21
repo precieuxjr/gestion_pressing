@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion';
 import { 
     LayoutDashboard, 
@@ -14,13 +15,23 @@ import { Link, useNavigate } from 'react-router-dom';
 
 export default function Navbar() {
     const navigate = useNavigate(); // ✅ Déplacé à l'intérieur du composant
-
+    const [user, setUser] = useState(null); // ← Ajout
     const handleLogout = () => { // ✅ Déplacé à l'intérieur du composant
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         navigate('/');
     };  
-
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            try {
+                const decoded = JSON.parse(atob(token.split('.')[1]));
+                setUser(decoded);
+            } catch (e) {
+                console.error('Erreur décodage token', e);
+            }
+        }
+    }, []);
     const menu = [
         { id: 1, nom: 'Tableau de bord', icon: LayoutDashboard, lien: '/admin/dashboard' }, 
         { id: 2, nom: 'Gestion des Commandes', icon: ShoppingCart, lien: '/admin/commandes' },
@@ -134,9 +145,9 @@ export default function Navbar() {
                         initial={{ opacity: 0, x: -5 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.6 }}
-                        className="text-[12px] font-bold"
+                        className="text-[13px] font-bold uppercase "
                     >
-                        PRECIEUX MAYELA
+                        {user ? `${user.prenom} ${user.nom}` : 'Chargement...'}
                     </motion.p>
                     <motion.p 
                         initial={{ opacity: 0 }}
@@ -144,10 +155,11 @@ export default function Navbar() {
                         transition={{ delay: 0.65 }}
                         className="text-[11px] text-gray-700"
                     >
-                        Manager
+                        {user?.role === 'admin' ? 'Administrateur' : 'Manager'}
                     </motion.p>
                 </div>
             </motion.div>
+        
         </motion.nav>
     );
 }

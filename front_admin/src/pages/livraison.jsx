@@ -26,16 +26,25 @@ export default function Livraisons() {
     setLoading(true);
     setError(null);
     try {
-        const data = await livraisonService.getCommandesLivraison('Prêt');
-        setCommandes(data);
+      const data = await livraisonService.getCommandesLivraison(); // ✅ sans filtre
+      setCommandes(data);
     } catch (err) {
-        setError(err.message);
+      setError(err.message);
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-}, []);
+  }, []);
 
+  const commandesEligibles = commandes.filter(cmd => 
+    ['Payée', 'Prêt'].includes(cmd.status)   // ← 'status'
+  );
 
+   // Filtrer par recherche sur les éligibles
+   const filteredEligibles = commandesEligibles.filter(cmd => {
+    const term = searchTerm.toLowerCase();
+    return (cmd.client || '').toLowerCase().includes(term) ||
+           (cmd.reference || '').toLowerCase().includes(term);
+  });
   const fetchLivreurs = useCallback(async () => {
     try {
       const data = await livraisonService.getLivreursDisponibles();
@@ -50,12 +59,10 @@ export default function Livraisons() {
     fetchLivreurs();
   }, [fetchCommandes, fetchLivreurs]);
 
-  const filteredCommandes = commandes.filter(cmd => {
-    const term = searchTerm.toLowerCase();
-    return (cmd.client || '').toLowerCase().includes(term) ||
-           (cmd.reference || '').toLowerCase().includes(term);
-  });
+  
 
+
+  
   const assignerLivreur = async (commandeId, livreurId) => {
     if (!livreurId) {
       triggerNotification('Veuillez choisir un livreur', 'error');
@@ -78,6 +85,19 @@ export default function Livraisons() {
   };
 
   
+  const annulerAssignation = async (commandeId) => {
+    if (!window.confirm('Voulez-vous vraiment annuler l\'assignation de cette commande ?')) return;
+    try {
+      await livraisonService.annulerAssignation(commandeId);
+      triggerNotification('Assignation annulée avec succès', 'success');
+      await fetchCommandes();
+      await fetchLivreurs();
+    } catch (err) {
+      triggerNotification(err.message, 'error');
+    }
+  };
+
+
 
   const triggerNotification = (message, type) => {
     setNotification({ message, type });
@@ -86,10 +106,10 @@ export default function Livraisons() {
 
   // Stats
   const stats = {
-    total: commandes.length,
-    enAttente: commandes.filter(c => c.statut_livraison === 'En attente').length,
-    enCours: commandes.filter(c => c.statut_livraison === 'En cours').length,
-    livrees: commandes.filter(c => c.statut_livraison === 'Livrée').length
+    total: commandesEligibles.length,
+    enAttente: commandesEligibles.filter(c => c.statut_livraison === 'En attente').length,
+    enCours: commandesEligibles.filter(c => c.statut_livraison === 'En cours').length,
+    livrees: commandesEligibles.filter(c => c.statut_livraison === 'Livrée').length
   };
 
   const statCards = [
@@ -191,72 +211,85 @@ export default function Livraisons() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100">
-                  {filteredCommandes.map((cmd, idx) => (
-                    <motion.tr
-                      key={cmd.id}
-                      custom={idx}
-                      initial="hidden"
-                      animate="visible"
-                      variants={tableRowVariants}
-                      className="hover:bg-gray-50 transition-colors duration-150"
-                    >
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                        {cmd.reference || cmd.id?.substring(0, 8)}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {cmd.client || '—'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">
-                        <div className="flex items-start gap-1">
-                          <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                          <span>{cmd.adresse_livraison || cmd.adresse_collecte || 'Non'}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        {cmd.livreur_id ? (
-                          <span className="text-sm text-gray-700">
-                            {cmd.livreur_nom || 'Livreur assigné'}
-                          </span>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <select
-                              value={selectedLivreur[cmd.id] || ''}
-                              onChange={(e) => setSelectedLivreur(prev => ({ ...prev, [cmd.id]: e.target.value }))}
-                              className="text-xs border rounded px-2 py-1 w-32"
-                            >
-                              <option value="">Choisir</option>
-                              {livreurs.map(l => (
-                                <option key={l.id} value={l.id}>
-                                  {l.prenom} {l.nom}
-                                </option>
-                              ))}
-                            </select>
-                            <button
-                              onClick={() => assignerLivreur(cmd.id, selectedLivreur[cmd.id])}
-                              disabled={assigning}
-                              className="bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 rounded disabled:opacity-50"
-                            >
-                              Assigner
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-    <span className={`text-xs px-2 py-1 rounded-full ${getStatutColor(cmd.statut || 'En attente')}`}>
-        {cmd.statut || 'En attente'}
-    </span>
-</td>
-                      
-                    </motion.tr>
-                  ))}
-                  {filteredCommandes.length === 0 && (
-                    <tr>
-                      <td colSpan="6" className="text-center py-8 text-gray-500">
-                        Aucune commande trouvée
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
+  {filteredEligibles.map((cmd, idx) => {
+    const isEligible = ['Payée', 'Prêt'].includes(cmd.status);
+    return (
+      <motion.tr
+        key={cmd.id}
+        custom={idx}
+        initial="hidden"
+        animate="visible"
+        variants={tableRowVariants}
+        className="hover:bg-gray-50 transition-colors duration-150"
+      >
+        <td className="px-4 py-3 text-sm font-medium text-gray-900">
+          {cmd.reference || cmd.id?.substring(0, 8)}
+        </td>
+        <td className="px-4 py-3 text-sm text-gray-600">
+          {cmd.client || '—'}
+        </td>
+        <td className="px-4 py-3 text-sm text-gray-500">
+          <div className="flex items-start gap-1">
+            <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+            <span>{cmd.adresse_livraison || cmd.adresse_collecte || 'Non'}</span>
+          </div>
+        </td>
+        <td className="px-4 py-3">
+          {cmd.livreur_id ? (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-700">
+                {cmd.livreur_nom || 'Livreur assigné'}
+              </span>
+              <button
+                onClick={() => annulerAssignation(cmd.id)}
+                className="text-red-500 hover:text-red-700 text-xs font-medium px-2 py-1 rounded border border-red-200 hover:bg-red-50 transition-colors"
+                title="Annuler l'assignation"
+              >
+                Annuler
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <select
+                value={selectedLivreur[cmd.id] || ''}
+                onChange={(e) => setSelectedLivreur(prev => ({ ...prev, [cmd.id]: e.target.value }))}
+                className="text-xs border rounded px-2 py-1 w-32"
+              >
+                <option value="">Choisir</option>
+                {livreurs.map(l => (
+                  <option key={l.public_id || l.id} value={l.public_id || l.id}>
+                    {l.prenom} {l.nom}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={() => assignerLivreur(cmd.id, selectedLivreur[cmd.id])}
+                disabled={!isEligible || assigning}
+                className={`text-white text-xs px-2 py-1 rounded disabled:opacity-50 ${
+                  isEligible ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-300 cursor-not-allowed'
+                }`}
+              >
+                Assigner
+              </button>
+            </div>
+          )}
+        </td>
+        <td className="px-4 py-3">
+        <span className={`text-xs px-2 py-1 rounded-full ${getStatutColor(cmd.status || 'En attente')}`}>
+  {cmd.status || 'En attente'}
+</span>
+        </td>
+      </motion.tr>
+    );
+  })}
+  {filteredEligibles.length === 0 && (
+    <tr>
+      <td colSpan="6" className="text-center py-8 text-gray-500">
+        Aucune commande trouvée
+      </td>
+    </tr>
+  )}
+</tbody>
               </table>
             </div>
           )}

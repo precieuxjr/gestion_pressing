@@ -1,8 +1,46 @@
-import  User  from '../models/users.js';
+import  User  from '../../models/users.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
-export default  async function login(req, res) {
+
+// =========================================
+// INSCRIPTION (register)
+// =========================================
+
+
+// =========================================
+// INSCRIPTION (register)
+// =========================================
+export const register = async (req, res) => {
+  try {
+    const { nom, prenom, postnom = '', email, telephone, password, adresse, role = 'client' } = req.body;
+    const user = new User({ nom, prenom, postnom, email, telephone, password, adresse, role });
+
+    // Appeler la méthode d'enregistrement (validation + insertion)
+    await user.enregistrement();
+
+    // Récupérer l'utilisateur créé (sans mot de passe)
+    const createdUser = await User.findByEmail(email);
+    delete createdUser.password;
+
+    res.status(201).json({
+      message: 'Utilisateur créé avec succès',
+      user: {
+        public_id: createdUser.public_id,
+        nom: createdUser.nom,
+        prenom: createdUser.prenom,
+        email: createdUser.email,
+        role: createdUser.role
+      }
+    });
+  } catch (error) {
+    console.error('❌ Erreur register:', error);
+    res.status(400).json({ error: error.message });
+  }
+};
+  
+
+export   async function login(req, res) {
     try {
         const { email, password } = req.body;
 

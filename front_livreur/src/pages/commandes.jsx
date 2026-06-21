@@ -1,49 +1,33 @@
-import { useState } from 'react';
-import { 
-  Package, 
-  Clock, 
-  CheckCircle, 
-  Truck, 
+// src/pages/LivreurCommandes.jsx
+import { useState, useEffect } from 'react';
+import {
+  Package,
+  Clock,
+  CheckCircle,
+  Truck,
   Eye,
-  ChevronDown,
   Search
 } from 'lucide-react';
 
-// Données fictives (à remplacer par un appel API)
-const mockCommandes = [
-  {
-    id: 'CMD-001',
-    client: 'Jean Dupont',
-    adresse: '12 Avenue des Fleurs, Kinshasa',
-    statut: 'en_attente',
-    date: '2026-06-16',
-    montant: 25.50,
-  },
-  {
-    id: 'CMD-002',
-    client: 'Marie Kabasele',
-    adresse: '45 Rue du Commerce, Lubumbashi',
-    statut: 'en_cours',
-    date: '2026-06-16',
-    montant: 32.00,
-  },
-  {
-    id: 'CMD-003',
-    client: 'Pierre Kasongo',
-    adresse: '7 Boulevard du 30 Juin, Kinshasa',
-    statut: 'livree',
-    date: '2026-06-15',
-    montant: 18.75,
-  },
-  {
-    id: 'CMD-004',
-    client: 'Chantal Mukendi',
-    adresse: '22 Cité des Jeunes, Goma',
-    statut: 'en_attente',
-    date: '2026-06-16',
-    montant: 40.00,
-  },
-];
+// Import du service
+import {
+  getMesCommandes,
+  accepterCommande,
+  updateStatutLivraison
+} from '../services/commandes';
+
+// Mapping des statuts API (français) vers les clés utilisées dans le composant
+const mapStatut = (statut) => {
+  const mapping = {
+    'En attente': 'en_attente',
+    'Payée': 'payee',
+    'Livrée': 'livree',
+    'En cours': 'en_cours',
+    'Prêt': 'pret',
+    'Annulée': 'annulee'
+  };
+  return mapping[statut] || statut;
+};
 
 const statutOptions = [
   { value: 'toutes', label: 'Toutes' },
@@ -52,19 +36,58 @@ const statutOptions = [
   { value: 'livree', label: 'Livrée' },
 ];
 
-// Couleurs et libellés des statuts
 const statutConfig = {
   en_attente: { label: 'En attente', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
   en_cours: { label: 'En cours', color: 'bg-blue-100 text-blue-800 border-blue-200' },
   livree: { label: 'Livrée', color: 'bg-green-100 text-green-800 border-green-200' },
+  payee: { label: 'Payée', color: 'bg-indigo-100 text-indigo-800 border-indigo-200' },
+  pret: { label: 'Prêt', color: 'bg-purple-100 text-purple-800 border-purple-200' },
+  annulee: { label: 'Annulée', color: 'bg-red-100 text-red-800 border-red-200' },
 };
 
 export default function LivreurCommandes() {
+  const [commandes, setCommandes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [filtreStatut, setFiltreStatut] = useState('toutes');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Fonction pour récupérer les commandes via le service
+  const fetchCommandes = async () => {
+    try {
+      setLoading(true);
+      const data = await getMesCommandes();
+  
+      // ✅ Ne garder que les commandes dont le statut général est 'Payée'
+      const payees = data.data.filter(item => item.status === 'Payée');
+  
+      // Transformer les données pour correspondre au format attendu
+      const formatted = payees.map(item => ({
+        id: item.id,                      // public_id
+        client: item.client,
+        adresse: item.adresse_livraison || item.adresse_collecte,
+        statut: mapStatut(item.status),   // ici 'payee'
+        date: item.depositDate ? new Date(item.depositDate).toLocaleDateString() : '',
+        montant: item.amount || 0,
+        livreur_id: item.livreur_id,
+        statut_livraison: item.statut_livraison
+      }));
+  
+      setCommandes(formatted);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCommandes();
+  }, []);
+
   // Filtrer les commandes
-  const commandesFiltrees = mockCommandes.filter((cmd) => {
+  const commandesFiltrees = commandes.filter((cmd) => {
     const matchStatut = filtreStatut === 'toutes' || cmd.statut === filtreStatut;
     const matchSearch = cmd.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
                         cmd.client.toLowerCase().includes(searchTerm.toLowerCase());
@@ -72,17 +95,61 @@ export default function LivreurCommandes() {
   });
 
   // Statistiques
-  const total = mockCommandes.length;
-  const enAttente = mockCommandes.filter(c => c.statut === 'en_attente').length;
-  const enCours = mockCommandes.filter(c => c.statut === 'en_cours').length;
-  const livrees = mockCommandes.filter(c => c.statut === 'livree').length;
+  const total = commandes.length;
+  const enAttente = commandes.filter(c => c.statut === 'en_attente').length;
+  const enCours = commandes.filter(c => c.statut === 'en_cours').length;
+  const livrees = commandes.filter(c => c.statut === 'livree').length;
 
-  const handleChangerStatut = (id, nouveauStatut) => {
-    // Logique à implémenter : appel API, mise à jour de l'état
-    console.log(`Changer statut de ${id} vers ${nouveauStatut}`);
-    // Pour l'instant, on simule un rechargement (ou on pourrait mettre à jour le state local)
-    alert(`Statut de la commande ${id} mis à jour vers "${nouveauStatut}"`);
+  // Gestion du changement de statut (utilisation du service)
+  const handleChangerStatut = async (id, nouveauStatut) => {
+    try {
+      if (nouveauStatut === 'en_cours') {
+        // Accepter la commande (POST /accepter)
+        await accepterCommande(id);
+      } else if (nouveauStatut === 'livree') {
+        // Mettre à jour le statut de livraison vers 'Livrée'
+        await updateStatutLivraison(id, 'Livrée');
+      } else {
+        throw new Error('Action non prise en charge');
+      }
+
+      // Recharger la liste après mise à jour
+      await fetchCommandes();
+      alert('Statut mis à jour avec succès !');
+    } catch (err) {
+      alert(err.message);
+    }
   };
+
+  // Affichage du chargement
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#f4f7fb] p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
+          <p className="text-gray-500">Chargement des commandes...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Affichage d'erreur
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#f4f7fb] p-6 flex items-center justify-center">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6 max-w-lg">
+          <h3 className="text-red-700 font-semibold">Erreur</h3>
+          <p className="text-red-600">{error}</p>
+          <button
+            onClick={fetchCommandes}
+            className="mt-4 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
+          >
+            Réessayer
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f4f7fb] p-6">
@@ -178,7 +245,7 @@ export default function LivreurCommandes() {
             <tbody className="divide-y divide-gray-200">
               {commandesFiltrees.length > 0 ? (
                 commandesFiltrees.map((cmd) => {
-                  const stat = statutConfig[cmd.statut];
+                  const stat = statutConfig[cmd.statut] || { label: cmd.statut, color: 'bg-gray-100 text-gray-800' };
                   return (
                     <tr key={cmd.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">{cmd.id}</td>
@@ -214,6 +281,9 @@ export default function LivreurCommandes() {
                             >
                               Livrer
                             </button>
+                          )}
+                          {cmd.statut === 'payee' && (
+                            <span className="text-xs text-gray-400">Payée</span>
                           )}
                         </div>
                       </td>
