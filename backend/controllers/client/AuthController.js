@@ -3,14 +3,11 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
 
-// =========================================
-// INSCRIPTION (register)
-// =========================================
+// ========================================= INSCRIPTION (register) =========================================
 
 
-// =========================================
-// INSCRIPTION (register)
-// =========================================
+
+
 export const register = async (req, res) => {
   try {
     const { nom, prenom, postnom = '', email, telephone, password, adresse, role = 'client' } = req.body;
@@ -39,7 +36,11 @@ export const register = async (req, res) => {
   }
 };
   
+// ========================================= INSCRIPTION (register) =========================================
 
+
+
+// ===================================CONNEXION============================================
 export   async function login(req, res) {
     try {
         const { email, password } = req.body;
@@ -96,4 +97,4 @@ export   async function login(req, res) {
         console.error(error);
         res.status(500).json({ error: 'Erreur interne du serveur' });
     }
-}
+}// ===================================CONNEXION============================================

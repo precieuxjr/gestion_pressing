@@ -1,46 +1,59 @@
+// scripts/backfillDetails.js
 import db from '../config/db.js';
-import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 
-async function seedLivreurs() {
-    try {
-        const livreurs = [
-            { nom: 'Kasongo', prenom: 'Pierre', email: 'pierre.kasongo@livreur.com', telephone: '+243812345675', password: 'password123', adresse: 'Kinshasa, Matete', postnom: 'Kasongo' },
-            { nom: 'Mwamba', prenom: 'Claire', email: 'claire.mwamba@livreur.com', telephone: '+243812345676', password: 'password123', adresse: 'Kinshasa, Limete', postnom: 'Mwamba' },
-            { nom: 'Kabila', prenom: 'Joseph', email: 'joseph.kabila@livreur.com', telephone: '+243812345677', password: 'password123', adresse: 'Kinshasa, Bandalungwa', postnom: 'Kabila' },
-            { nom: 'Sefu', prenom: 'Rachel', email: 'rachel.sefu@livreur.com', telephone: '+243812345678', password: 'password123', adresse: 'Kinshasa, Mont Ngafula', postnom: 'Sefu' },
-            { nom: 'Lumumba', prenom: 'Patrice', email: 'patrice.lumumba@livreur.com', telephone: '+243812345679', password: 'password123', adresse: 'Kinshasa, Nsele', postnom: 'Lumumba' }
-        ];
+/**
+ * Script de rattrapage : ajoute des détails par défaut aux commandes qui n'en ont pas.
+ * Utilisation : node scripts/backfillDetails.js
+ */
 
-        let inserted = 0;
-        for (const data of livreurs) {
-            // Vérifier si l'email existe déjà
-            const [existing] = await db.execute('SELECT id FROM users WHERE email = ?', [data.email]);
-            if (existing.length > 0) {
-                console.log(`⏭️ Livreur avec email ${data.email} existe déjà.`);
-                continue;
-            }
+const SERVICE_ID = 4;      // ID du service "Repassage"
+const QUANTITE = 3;
+const PRIX_UNITAIRE = 2000;
+const MONTANT_TOTAL_ATTENDU = 6000; // correspond à 3 * 2000
 
-            const publicId = uuidv4();
-            const hashedPassword = await bcrypt.hash(data.password, 10);
+async function backfillDetails() {
+  console.log('🚀 Début du rattrapage des détails manquants...');
 
-            await db.execute(
-                `INSERT INTO users 
-                 (public_id, nom, prenom, postnom, email, password, telephone, adresse, role, statut, disponibilite) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'livreur', 'actif', 'Disponible')`,
-                [publicId, data.nom, data.prenom, data.postnom, data.email, hashedPassword, data.telephone, data.adresse]
-            );
-            inserted++;
-            console.log(`✅ Livreur ${data.prenom} ${data.nom} ajouté.`);
-        }
+  try {
+    // 1. Récupérer les commandes sans détails
+    const [commandes] = await db.execute(`
+      SELECT c.id, c.public_id, c.reference, c.montant_total
+      FROM commandes c
+      LEFT JOIN details_commandes dc ON dc.commande_id = c.id
+      WHERE dc.id IS NULL
+        AND c.montant_total = ?
+    `, [MONTANT_TOTAL_ATTENDU]);
 
-        console.log(`\n🎉 ${inserted} livreurs ajoutés avec succès.`);
-        process.exit(0);
-    } catch (err) {
-        console.error('❌ Erreur :', err.message);
-        console.error(err);
-        process.exit(1);
+    if (commandes.length === 0) {
+      console.log('✅ Aucune commande à corriger.');
+      return;
     }
+
+    console.log(`📋 ${commandes.length} commandes sans détails trouvées :`);
+    commandes.forEach(c => console.log(`   - ${c.reference} (${c.public_id}) - ${c.montant_total} FC`));
+
+    // 2. Préparer les insertions
+    let inserted = 0;
+    for (const cmd of commandes) {
+      const publicId = uuidv4();
+      await db.execute(
+        `INSERT INTO details_commandes 
+         (public_id, commande_id, service_id, quantite, prix_unitaire_scelle, details, motif_refus)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [publicId, cmd.id, SERVICE_ID, QUANTITE, PRIX_UNITAIRE, '', null]
+      );
+      inserted++;
+      console.log(`✅ Détails ajoutés pour la commande ${cmd.reference}`);
+    }
+
+    console.log(`🎉 ${inserted} commandes corrigées avec succès.`);
+  } catch (error) {
+    console.error('❌ Erreur lors du rattrapage :', error.message);
+    process.exit(1);
+  } finally {
+    await db.end(); // ferme le pool de connexions
+  }
 }
 
-seedLivreurs();
+backfillDetails();

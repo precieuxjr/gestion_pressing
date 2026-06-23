@@ -6,44 +6,43 @@ import {
   CheckCircle,
   Truck,
   Eye,
-  Search
+  Search,
+  XCircle
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
-// Import du service
 import {
   getMesCommandes,
-  accepterCommande,
   updateStatutLivraison
 } from '../services/commandes';
 
-// Mapping des statuts API (français) vers les clés utilisées dans le composant
-const mapStatut = (statut) => {
+const mapStatutLivraison = (statut) => {
   const mapping = {
     'En attente': 'en_attente',
-    'Payée': 'payee',
-    'Livrée': 'livree',
+    'Collectée': 'collectee',
     'En cours': 'en_cours',
-    'Prêt': 'pret',
+    'Livrée': 'livree',
     'Annulée': 'annulee'
   };
   return mapping[statut] || statut;
 };
 
+const statutLivraisonConfig = {
+  en_attente: { label: 'En attente', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+  collectee: { label: 'Collectée', color: 'bg-blue-100 text-blue-800 border-blue-200' },
+  en_cours: { label: 'En cours', color: 'bg-purple-100 text-purple-800 border-purple-200' },
+  livree: { label: 'Livrée', color: 'bg-green-100 text-green-800 border-green-200' },
+  annulee: { label: 'Annulée', color: 'bg-red-100 text-red-800 border-red-200' }
+};
+
 const statutOptions = [
-  { value: 'toutes', label: 'Toutes' },
+  { value: 'toutes', label: 'Tous' },
   { value: 'en_attente', label: 'En attente' },
+  { value: 'collectee', label: 'Collectée' },
   { value: 'en_cours', label: 'En cours' },
   { value: 'livree', label: 'Livrée' },
+  { value: 'annulee', label: 'Annulée' }
 ];
-
-const statutConfig = {
-  en_attente: { label: 'En attente', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
-  en_cours: { label: 'En cours', color: 'bg-blue-100 text-blue-800 border-blue-200' },
-  livree: { label: 'Livrée', color: 'bg-green-100 text-green-800 border-green-200' },
-  payee: { label: 'Payée', color: 'bg-indigo-100 text-indigo-800 border-indigo-200' },
-  pret: { label: 'Prêt', color: 'bg-purple-100 text-purple-800 border-purple-200' },
-  annulee: { label: 'Annulée', color: 'bg-red-100 text-red-800 border-red-200' },
-};
 
 export default function LivreurCommandes() {
   const [commandes, setCommandes] = useState([]);
@@ -52,75 +51,65 @@ export default function LivreurCommandes() {
   const [filtreStatut, setFiltreStatut] = useState('toutes');
   const [searchTerm, setSearchTerm] = useState('');
 
- // Fonction pour récupérer les commandes via le service
-const fetchCommandes = async () => {
-  try {
-    setLoading(true);
-    const data = await getMesCommandes();
+  const fetchCommandes = async () => {
+    try {
+      setLoading(true);
+      const data = await getMesCommandes();
+      const pretes = data.data.filter(item => item.status === 'Prêt');
+      const formatted = pretes.map(item => ({
+        id: item.id,
+        client: item.client,
+        adresse: item.adresse_livraison || item.adresse_collecte,
+        statut_livraison: item.statut_livraison || 'En attente',
+        statut_livraison_cle: mapStatutLivraison(item.statut_livraison || 'En attente'),
+        date: item.depositDate ? new Date(item.depositDate).toLocaleDateString() : '',
+        montant: item.amount || 0,
+        livreur_id: item.livreur_id
+      }));
+      setCommandes(formatted);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+      toast.error('Erreur de chargement des commandes');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // ✅ Ne garder que les commandes dont le statut général est 'Prêt'
-    const pretes = data.data.filter(item => item.status === 'Prêt');
-
-    // Transformer les données pour correspondre au format attendu
-    const formatted = pretes.map(item => ({
-      id: item.id,                      // public_id
-      client: item.client,
-      adresse: item.adresse_livraison || item.adresse_collecte,
-      statut: mapStatut(item.status),   // ici 'pret'
-      date: item.depositDate ? new Date(item.depositDate).toLocaleDateString() : '',
-      montant: item.amount || 0,
-      livreur_id: item.livreur_id,
-      statut_livraison: item.statut_livraison
-    }));
-
-    setCommandes(formatted);
-    setError(null);
-  } catch (err) {
-    setError(err.message);
-  } finally {
-    setLoading(false);
-  }
-};
   useEffect(() => {
     fetchCommandes();
   }, []);
 
-  // Filtrer les commandes
   const commandesFiltrees = commandes.filter((cmd) => {
-    const matchStatut = filtreStatut === 'toutes' || cmd.statut === filtreStatut;
+    const matchStatut = filtreStatut === 'toutes' || cmd.statut_livraison_cle === filtreStatut;
     const matchSearch = cmd.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
                         cmd.client.toLowerCase().includes(searchTerm.toLowerCase());
     return matchStatut && matchSearch;
   });
 
-  // Statistiques
   const total = commandes.length;
-  const enAttente = commandes.filter(c => c.statut === 'en_attente').length;
-  const enCours = commandes.filter(c => c.statut === 'en_cours').length;
-  const livrees = commandes.filter(c => c.statut === 'livree').length;
+  const enAttente = commandes.filter(c => c.statut_livraison_cle === 'en_attente').length;
+  const collectees = commandes.filter(c => c.statut_livraison_cle === 'collectee').length;
+  const enCours = commandes.filter(c => c.statut_livraison_cle === 'en_cours').length;
+  const livrees = commandes.filter(c => c.statut_livraison_cle === 'livree').length;
+  const annulees = commandes.filter(c => c.statut_livraison_cle === 'annulee').length;
 
-  // Gestion du changement de statut (utilisation du service)
   const handleChangerStatut = async (id, nouveauStatut) => {
     try {
-      if (nouveauStatut === 'en_cours') {
-        // Accepter la commande (POST /accepter)
-        await accepterCommande(id);
-      } else if (nouveauStatut === 'livree') {
-        // Mettre à jour le statut de livraison vers 'Livrée'
-        await updateStatutLivraison(id, 'Livrée');
-      } else {
-        throw new Error('Action non prise en charge');
-      }
-
-      // Recharger la liste après mise à jour
+      await updateStatutLivraison(id, nouveauStatut);
       await fetchCommandes();
-      alert('Statut mis à jour avec succès !');
+      toast.success(`Statut de livraison mis à jour : ${nouveauStatut}`);
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message || 'Erreur lors de la mise à jour');
     }
   };
 
-  // Affichage du chargement
+  const handleAnnuler = (id) => {
+    if (window.confirm('Voulez-vous vraiment annuler cette livraison ?')) {
+      handleChangerStatut(id, 'Annulée');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#f4f7fb] p-6 flex items-center justify-center">
@@ -132,7 +121,6 @@ const fetchCommandes = async () => {
     );
   }
 
-  // Affichage d'erreur
   if (error) {
     return (
       <div className="min-h-screen bg-[#f4f7fb] p-6 flex items-center justify-center">
@@ -155,15 +143,15 @@ const fetchCommandes = async () => {
       {/* En-tête */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-800">Mes commandes</h1>
-        <p className="text-gray-500">Gérez les commandes qui vous sont assignées.</p>
+        <p className="text-gray-500">Gérez les livraisons qui vous sont assignées.</p>
       </div>
 
       {/* Cartes récapitulatives */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
         <div className="bg-white rounded-xl shadow-sm p-5 border-l-4 border-emerald-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Total commandes</p>
+              <p className="text-sm text-gray-500">Total</p>
               <p className="text-2xl font-bold text-gray-800">{total}</p>
             </div>
             <Package className="text-emerald-500" size={28} />
@@ -181,19 +169,28 @@ const fetchCommandes = async () => {
         <div className="bg-white rounded-xl shadow-sm p-5 border-l-4 border-blue-400">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">En cours</p>
-              <p className="text-2xl font-bold text-gray-800">{enCours}</p>
+              <p className="text-sm text-gray-500">Collectées</p>
+              <p className="text-2xl font-bold text-gray-800">{collectees}</p>
             </div>
             <Truck className="text-blue-400" size={28} />
           </div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4 border-green-400">
+        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4 border-purple-400">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Livrées</p>
-              <p className="text-2xl font-bold text-gray-800">{livrees}</p>
+              <p className="text-sm text-gray-500">En cours</p>
+              <p className="text-2xl font-bold text-gray-800">{enCours}</p>
             </div>
-            <CheckCircle className="text-green-400" size={28} />
+            <Truck className="text-purple-400" size={28} />
+          </div>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4 border-red-400">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500">Annulées</p>
+              <p className="text-2xl font-bold text-gray-800">{annulees}</p>
+            </div>
+            <XCircle className="text-red-400" size={28} />
           </div>
         </div>
       </div>
@@ -235,7 +232,7 @@ const fetchCommandes = async () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Adresse</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut livraison</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -244,7 +241,7 @@ const fetchCommandes = async () => {
             <tbody className="divide-y divide-gray-200">
               {commandesFiltrees.length > 0 ? (
                 commandesFiltrees.map((cmd) => {
-                  const stat = statutConfig[cmd.statut] || { label: cmd.statut, color: 'bg-gray-100 text-gray-800' };
+                  const stat = statutLivraisonConfig[cmd.statut_livraison_cle] || { label: cmd.statut_livraison, color: 'bg-gray-100 text-gray-800' };
                   return (
                     <tr key={cmd.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">{cmd.id}</td>
@@ -265,24 +262,62 @@ const fetchCommandes = async () => {
                           >
                             <Eye size={18} />
                           </button>
-                          {cmd.statut === 'en_attente' && (
+
+                          {/* Bouton Rétablir (si annulée) */}
+                          {cmd.statut_livraison_cle === 'annulee' && (
                             <button
-                              onClick={() => handleChangerStatut(cmd.id, 'en_cours')}
-                              className="text-blue-500 hover:text-blue-700 text-xs font-medium px-2 py-1 rounded border border-blue-200 hover:bg-blue-50 transition-colors"
+                              onClick={() => handleChangerStatut(cmd.id, 'En cours')}
+                              className="text-orange-500 hover:text-orange-700 text-xs font-medium px-2 py-1 rounded border border-orange-200 hover:bg-orange-50 transition-colors"
                             >
-                              Démarrer
+                              Rétablir
                             </button>
                           )}
-                          {cmd.statut === 'en_cours' && (
-                            <button
-                              onClick={() => handleChangerStatut(cmd.id, 'livree')}
-                              className="text-green-500 hover:text-green-700 text-xs font-medium px-2 py-1 rounded border border-green-200 hover:bg-green-50 transition-colors"
-                            >
-                              Livrer
-                            </button>
+
+                          {/* Actions normales (si non annulée) */}
+                          {cmd.statut_livraison_cle !== 'annulee' && (
+                            <>
+                              {cmd.statut_livraison_cle === 'en_attente' && (
+                                <button
+                                  onClick={() => handleChangerStatut(cmd.id, 'Collectée')}
+                                  className="text-blue-500 hover:text-blue-700 text-xs font-medium px-2 py-1 rounded border border-blue-200 hover:bg-blue-50 transition-colors"
+                                >
+                                  Collecter
+                                </button>
+                              )}
+                              {cmd.statut_livraison_cle === 'collectee' && (
+                                <button
+                                  onClick={() => handleChangerStatut(cmd.id, 'En cours')}
+                                  className="text-purple-500 hover:text-purple-700 text-xs font-medium px-2 py-1 rounded border border-purple-200 hover:bg-purple-50 transition-colors"
+                                >
+                                  Démarrer
+                                </button>
+                              )}
+                              {cmd.statut_livraison_cle === 'en_cours' && (
+                                <button
+                                  onClick={() => handleChangerStatut(cmd.id, 'Livrée')}
+                                  className="text-green-500 hover:text-green-700 text-xs font-medium px-2 py-1 rounded border border-green-200 hover:bg-green-50 transition-colors"
+                                >
+                                  Livrer
+                                </button>
+                              )}
+
+                              {/* Bouton Annuler (sauf si livrée ou annulée) */}
+                              {cmd.statut_livraison_cle !== 'livree' && cmd.statut_livraison_cle !== 'annulee' && (
+                                <button
+                                  onClick={() => handleAnnuler(cmd.id)}
+                                  className="text-red-500 hover:text-red-700 text-xs font-medium px-2 py-1 rounded border border-red-200 hover:bg-red-50 transition-colors"
+                                >
+                                  Annuler
+                                </button>
+                              )}
+                            </>
                           )}
-                          {cmd.statut === 'payee' && (
-                            <span className="text-xs text-gray-400">Payée</span>
+
+                          {cmd.statut_livraison_cle === 'livree' && (
+                            <span className="text-xs text-gray-400">Terminée</span>
+                          )}
+                          {cmd.statut_livraison_cle === 'annulee' && (
+                            <span className="text-xs text-gray-400 ml-2">(Annulée)</span>
                           )}
                         </div>
                       </td>

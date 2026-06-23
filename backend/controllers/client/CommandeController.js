@@ -1,21 +1,39 @@
-import Commande from '../models/commandes.js';
+// controllers/client/CommandeController.js
+import db from '../../config/db.js';
+import Commande from '../../models/commandes.js';
 import User from '../../models/users.js';
+import DetailsCommande from '../../models/details_commande.js';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 
-
-// Contrôleur login (unique)
-export default async function login(req, res) {
-  const user = await User.findByEmail(email);
-  // Vérification du mot de passe, génération du token...
-  const token = jwt.sign({ public_id, email, role }, JWT_SECRET);
-  res.json({ token, user: { public_id, email, role,} });
-}
-
-
-
-
-
-
-
+// =========================================
+// Contrôleur login (à corriger)
+// =========================================
+export const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findByEmail(email);
+    if (!user) {
+      return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
+    }
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) {
+      return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
+    }
+    const token = jwt.sign(
+      { public_id: user.public_id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    res.json({
+      token,
+      user: { public_id: user.public_id, email: user.email, role: user.role }
+    });
+  } catch (error) {
+    console.error('❌ Erreur login:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
 
 // =========================================
 // 1. Récupérer les commandes du client
@@ -39,7 +57,6 @@ export const getCommandeDetails = async (req, res) => {
     const { id } = req.params;
     const clientId = req.user.public_id;
 
-    // Vérifier que la commande existe et appartient au client
     const belongs = await Commande.belongsToUser(id, clientId);
     if (!belongs) {
       return res.status(403).json({ success: false, message: 'Accès non autorisé' });
@@ -61,26 +78,31 @@ export const getCommandeDetails = async (req, res) => {
 // =========================================
 // 3. Annuler une commande (si possible)
 // =========================================
+// =========================================
+// 3. Annuler une commande (si possible)
+// =========================================
 export const annulerCommande = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { publicId } = req.params;          // ✅ utilisation de publicId
     const clientId = req.user.public_id;
-
+    
     // Vérifier l'appartenance
-    const belongs = await Commande.belongsToUser(id, clientId);
+    const belongs = await Commande.belongsToUser(publicId, clientId);
     if (!belongs) {
       return res.status(403).json({ success: false, message: 'Accès non autorisé' });
     }
 
-    const commande = await Commande.findByPublicId(id);
+    const commande = await Commande.findByPublicId(publicId);
     if (!commande) {
       return res.status(404).json({ success: false, message: 'Commande introuvable' });
     }
-
-    // Vérifier si annulable (délégation au modèle via une méthode)
+    console.log('🔍 Statut récupéré depuis la base :', JSON.stringify(commande.statut));
+    console.log('🔍 Type de la variable :', typeof commande.statut);
+    console.log('🔍 Est-ce strictement égal à "En attente" ?', commande.statut === 'En attente');
+    // Vérifier si annulable (uniquement si en attente)
     if (!commande.peutEtreAnnulee()) {
-        return res.status(400).json({ success: false, message: 'Cette commande ne peut plus être annulée' });
-      }
+      return res.status(400).json({ success: false, message: 'Cette commande ne peut plus être annulée' });
+    }
 
     await commande.annuler();
     res.json({ success: true, message: 'Commande annulée avec succès', data: commande.toJSON() });
@@ -135,5 +157,159 @@ export const getStats = async (req, res) => {
   } catch (error) {
     console.error('❌ Erreur getStats:', error);
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// =========================================
+// 7. Modifier l'adresse de livraison
+// =========================================
+export const modifierAdresseLivraison = async (req, res) => {
+  const clientPublicId = req.user.public_id;
+  const { publicId } = req.params;
+  const { adresse_livraison } = req.body;
+
+  if (!adresse_livraison || adresse_livraison.trim().length < 3) {
+    return res.status(400).json({ error: 'Adresse de livraison valide requise (au moins 3 caractères).' });
+  }
+
+  try {
+    const commande = await Commande.findByPublicId(publicId);
+    if (!commande) {
+      return res.status(404).json({ error: 'Commande introuvable.' });
+    }
+
+    await commande.updateAdresseLivraison(adresse_livraison, clientPublicId);
+
+    res.json({
+      message: 'Adresse de livraison mise à jour avec succès.',
+      data: commande.toJSON ? commande.toJSON() : commande,
+    });
+  } catch (error) {
+    console.error('❌ Erreur modifierAdresseLivraison:', error);
+    if (error.message.includes('Client introuvable') || error.message.includes('autorisation')) {
+      return res.status(403).json({ error: error.message });
+    }
+    if (error.message.includes('valide requise')) {
+      return res.status(400).json({ error: error.message });
+    }
+    if (error.message.includes('déjà en statut')) {
+      return res.status(400).json({ error: error.message });
+    }
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// =========================================
+// 8. Créer une commande
+// =========================================
+// =========================================
+// 8. Créer une commande
+// =========================================// =========================================
+// 8. Créer une commande (version complète)
+// =========================================
+export const creerCommande = async (req, res) => {
+  const clientPublicId = req.user.public_id;
+
+  const {
+    services,
+    adresse_collecte,
+    adresse_livraison,
+    mode_paiement = 'Espèces',
+    date_livraison_souhaitee,
+    notes = ''
+  } = req.body;
+
+  // 1️⃣ Validation des champs obligatoires
+  if (!services || !Array.isArray(services) || services.length === 0) {
+    return res.status(400).json({ error: 'Au moins un service est requis.' });
+  }
+  if (!adresse_collecte || !adresse_livraison) {
+    return res.status(400).json({ error: 'Les adresses de collecte et de livraison sont obligatoires.' });
+  }
+
+  try {
+    // 2️⃣ Récupérer l'ID numérique du client
+    const [userRow] = await db.execute('SELECT id FROM users WHERE public_id = ?', [clientPublicId]);
+    if (!userRow || userRow.length === 0) {
+      return res.status(404).json({ error: 'Client introuvable.' });
+    }
+    const userId = userRow[0].id;
+
+    // 3️⃣ Calcul du montant total et préparation des détails
+    let montantTotal = 0;
+    const detailsData = [];
+
+    for (const item of services) {
+      const { service_id, quantite, prix_unitaire } = item;
+      if (!service_id || !quantite || quantite <= 0 || !prix_unitaire || prix_unitaire <= 0) {
+        return res.status(400).json({ error: 'Données de service invalides.' });
+      }
+
+      // Vérifier que le service existe en base
+      const [serviceRow] = await db.execute('SELECT id FROM services WHERE id = ?', [service_id]);
+      if (!serviceRow || serviceRow.length === 0) {
+        return res.status(400).json({ error: `Service ID ${service_id} inexistant.` });
+      }
+
+      const lineTotal = quantite * prix_unitaire;
+      montantTotal += lineTotal;
+      detailsData.push({ service_id, quantite, prix_unitaire, total_ligne: lineTotal });
+    }
+
+    // 4️⃣ Créer la commande
+    const commande = new Commande({
+      user_id: userId,
+      adresse_collecte,
+      adresse_livraison,
+      mode_paiement,
+      note_client: notes,
+      date_livraison: date_livraison_souhaitee || null,
+      montant_total: montantTotal,
+      statut: 'En attente'
+    });
+    await commande.Commander();
+
+    // 5️⃣ Insérer les détails de la commande
+    const commandeId = commande.id;
+    for (const detail of detailsData) {
+      const detailObj = new DetailsCommande({
+        commande_id: commandeId,
+        service_id: detail.service_id,
+        quantite: detail.quantite,
+        prix_unitaire_scelle: detail.prix_unitaire,
+        total_ligne: detail.total_ligne
+      });
+      await detailObj.save();
+    }
+    console.log(`✅ ${detailsData.length} services insérés pour la commande ${commande.public_id}`);
+
+    // 6️⃣ Récupérer la commande complète (avec les détails)
+    const commandeComplete = await Commande.findByIdWithLivraison(commande.public_id);
+    const details = await commandeComplete.getDetails();
+
+    // 7️⃣ Émettre une notification WebSocket (uniquement pour les admins)
+const io = req.app.get('io');
+if (io) {
+  io.to('admins').emit('commande_updated', {   // ← io.to('admins') au lieu de io.emit
+    type: 'nouvelle_commande',
+    commandeId: commande.public_id,
+    userId: userId,
+    updatedAt: new Date()
+  });
+  console.log('📤 Émission WebSocket vers admins : nouvelle_commande', commande.public_id);
+}
+
+    // 8️⃣ Réponse HTTP
+    res.status(201).json({
+      message: 'Commande créée avec succès.',
+      data: {
+        commande: commandeComplete.toJSON ? commandeComplete.toJSON() : commandeComplete,
+        details
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur creerCommande:', error);
+    res.status(500).json({ error: error.message });
   }
 };

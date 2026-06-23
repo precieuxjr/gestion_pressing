@@ -12,44 +12,21 @@ export async function getAllCommandes(req, res) {
     }
 }
 
-export async function getCommandeDetails(req, res) {
+export const getCommandeDetails = async (req, res) => {
     try {
         const { publicId } = req.params;
-        const commande = await Commande.findByPublicId(publicId);
-        if (!commande) return res.status(404).json({ error: 'Commande introuvable' });
-
-        const details = await commande.getDetails();
-        const client = await User.findById(commande.user_id);
-
-        // ---------------------- INSERTION ICI --------------------------
-        // Transforme les détails en objets simples pour le frontend
-        const servicesList = details.map(d => ({
-            id: d.id,
-            public_id: d.public_id,
-            service_nom: d.service_nom || d.nom,
-            quantite: d.quantite,
-            prix_unitaire_scelle: d.prix_unitaire_scelle,
-            prix_total: d.quantite * d.prix_unitaire_scelle,
-            details: d.details || null
-        }));
-        // --------------------------------------------------------------
-
-        const commandeData = commande.toJSON();
-        commandeData.client = client ? `${client.prenom} ${client.nom}` : 'Client inconnu';
-        commandeData.phone = client?.telephone || null;
-        commandeData.email = client?.email || null;
-        commandeData.depositDate = commande.created_at;
-        commandeData.expectedDate = commande.date_livraison;
-        commandeData.amount = commande.montant_total;
-        commandeData.statut = commande.statut;
-        commandeData.services = servicesList;   // ← utilise la variable transformée
-
-        res.json(commandeData);
+        const commande = await Commande.findByIdWithDetails(publicId);
+        console.log('🔍 Commande avec détails :', commande);
+        if (!commande) {
+            return res.status(404).json({ error: 'Commande introuvable' });
+        }
+        res.json(commande);
     } catch (error) {
         console.error('❌ Erreur getCommandeDetails:', error);
-        res.status(500).json({ error: error.message })
+        res.status(500).json({ error: error.message });
     }
-}
+};
+
 
 export async function updateCommandeStatus(req, res) {
     console.log('📥 Corps reçu :', req.body);
@@ -68,17 +45,52 @@ export async function updateCommandeStatus(req, res) {
         const commande = await Commande.findByPublicId(publicId);
         if (!commande) return res.status(404).json({ error: 'Commande introuvable' });
 
+        // ✅ SÉCURITÉ : empêcher la modification si déjà livrée
+        if (commande.statut === 'Livrée') {
+            return res.status(400).json({ error: 'Impossible de modifier une commande déjà livrée' });
+        }
+
         // Appeler la méthode du modèle
         await commande.updateStatut(status);
+
+        // ✅ Émettre un événement WebSocket ciblé
+        const io = req.app.get('io');
+        if (io) {
+            // Récupérer le client (propriétaire de la commande)
+            const client = await User.findById(commande.user_id);
+            const clientPublicId = client?.public_id || null;
+
+            // Récupérer le livreur (si assigné)
+            let livreurPublicId = null;
+            if (commande.livreur_id) {
+                const livreur = await User.findById(commande.livreur_id);
+                livreurPublicId = livreur?.public_id || null;
+            }
+
+            const payload = {
+                type: 'status_changed',
+                commandeId: publicId,
+                newStatus: status,
+                updatedAt: new Date()
+            };
+
+            // Envoyer au client
+            if (clientPublicId) {
+                io.to(`user_${clientPublicId}`).emit('commande_updated', payload);
+            }
+
+            // Envoyer au livreur (s'il est assigné)
+            if (livreurPublicId) {
+                io.to(`user_${livreurPublicId}`).emit('commande_updated', payload);
+            }
+        }
 
         res.json({ message: 'Statut mis à jour', commande: commande.toJSON() });
     } catch (error) {
         console.error('❌ Erreur updateStatus:', error);
         res.status(500).json({ error: error.message });
     }
-}
-    
-export async function updateCommandeDates(req, res) {
+}export async function updateCommandeDates(req, res) {
     try {
         const { publicId } = req.params;
         const { date_collecte, date_livraison } = req.body;
@@ -86,14 +98,38 @@ export async function updateCommandeDates(req, res) {
         if (!commande) return res.status(404).json({ error: 'Commande introuvable' });
         if (date_collecte) await commande.updateDateCollecte(date_collecte);
         if (date_livraison) await commande.updateDateLivraison(date_livraison);
+
+        const io = req.app.get('io');
+        if (io) {
+            // Récupérer le client et le livreur
+            const client = await User.findById(commande.user_id);
+            const clientPublicId = client?.public_id || null;
+
+            let livreurPublicId = null;
+            if (commande.livreur_id) {
+                const livreur = await User.findById(commande.livreur_id);
+                livreurPublicId = livreur?.public_id || null;
+            }
+
+            const payload = {
+                type: 'dates_changed',
+                commandeId: publicId,
+                date_collecte,
+                date_livraison,
+                updatedAt: new Date()
+            };
+
+            if (clientPublicId) io.to(`user_${clientPublicId}`).emit('commande_updated', payload);
+            if (livreurPublicId) io.to(`user_${livreurPublicId}`).emit('commande_updated', payload);
+        }
+
         res.json({ message: 'Dates mises à jour', commande: commande.toJSON() });
     } catch (error) {
         console.error('❌ Erreur updateDates:', error);
-        res.status(500).json({ error: error.message })
+        res.status(500).json({ error: error.message });
     }
-}
 
-export async function supprimerCommande(req, res) {
+}   export async function supprimerCommande(req, res) {
     try {
         const { publicId } = req.params;
         const commande = await Commande.findByPublicId(publicId);
@@ -103,10 +139,32 @@ export async function supprimerCommande(req, res) {
         }
         const deleted = await Commande.deleteByPublicId(publicId);
         if (!deleted) return res.status(404).json({ error: 'Commande introuvable' });
+
+        const io = req.app.get('io');
+        if (io) {
+            const client = await User.findById(commande.user_id);
+            const clientPublicId = client?.public_id || null;
+
+            let livreurPublicId = null;
+            if (commande.livreur_id) {
+                const livreur = await User.findById(commande.livreur_id);
+                livreurPublicId = livreur?.public_id || null;
+            }
+
+            const payload = {
+                type: 'commande_deleted',
+                commandeId: publicId,
+                updatedAt: new Date()
+            };
+
+            if (clientPublicId) io.to(`user_${clientPublicId}`).emit('commande_updated', payload);
+            if (livreurPublicId) io.to(`user_${livreurPublicId}`).emit('commande_updated', payload);
+        }
+
         res.json({ message: 'Commande supprimée avec succès' });
     } catch (error) {
         console.error('❌ Erreur suppression:', error);
-        res.status(500).json({ error: error.message })
+        res.status(500).json({ error: error.message });
     }
 }
 
@@ -119,3 +177,13 @@ export async function getCommandesStats(req, res) {
         res.status(500).json({ error: error.message })
     }
 }
+
+export const getCommandesPayees = async (req, res) => {
+    try {
+        const commandes = await Commande.findAllWithLivraisonInfo('Payée');
+        res.json(commandes);
+    } catch (error) {
+        console.error('❌ Erreur getCommandesPayees:', error);
+        res.status(500).json({ error: error.message });
+    }
+};

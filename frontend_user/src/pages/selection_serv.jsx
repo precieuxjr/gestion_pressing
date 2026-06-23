@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
 import Navbar from '../components/navbar';
 import StepButton from '../components/verif';
 import { 
@@ -9,10 +8,12 @@ import {
 } from 'lucide-react';
 
 export default function ServicesPage() {
-  // Tableau de tes nouveaux services sans les propriétés d'images inutilisées
+  const navigate = useNavigate();
+
+  // 1️⃣ Définition des services
   const servicesList = [
     {
-      id: 'nettoyageSec',
+      id: '1',
       nom: 'Nettoyage à sec',
       description: 'Nettoyage professionnel pour costumes, robes de soirée et textiles délicats avec des produits premium.',
       objectif: ['Costumes & Tailleurs', 'Robes de soirée', 'Textiles délicats'],
@@ -22,7 +23,7 @@ export default function ServicesPage() {
       color: "bg-purple-50 text-purple-500 dark:bg-purple-950/40 dark:text-purple-400"
     },
     {
-      id: 'blanchisserie',
+      id: '2',
       nom: 'Blanchisserie',
       description: 'Du linge impeccable, parfaitement lavé, repassé et plié. Service pour particuliers et professionnels.',
       objectif: ['Chemises & Pantalons', 'Linge de maison', 'Service B2B'],
@@ -32,7 +33,7 @@ export default function ServicesPage() {
       color: "bg-blue-50 text-blue-500 dark:bg-blue-950/40 dark:text-blue-400"
     },
     {
-      id: 'retoucheCouture',
+      id: '3',
       nom: 'Retouche & Couture',
       description: 'Ajustements, réparations et modifications par des mains expertes. Redonnez vie à vos vêtements.',
       objectif: ['Ajustements sur mesure', 'Réparations', 'Modifications créatives'],
@@ -42,7 +43,7 @@ export default function ServicesPage() {
       color: "bg-orange-50 text-orange-500 dark:bg-orange-950/40 dark:text-orange-400"
     },
     {
-      id: 'repassage',
+      id: '4',
       nom: 'Repassage',
       description: 'Repassage professionnel sur table aspirante et soufflante pour un fini impeccable, sans faux plis.',
       objectif: ['Chemises & Pantalons', 'Draps & Nappes', 'Service rapide'],
@@ -51,18 +52,9 @@ export default function ServicesPage() {
       unit: "pièce",
       color: "bg-teal-50 text-teal-500 dark:bg-teal-950/40 dark:text-teal-400"
     },
+   
     {
-      id: 'livraisonExpress',
-      nom: 'Livraison Express',
-      description: 'Nous récupérons vos vêtements à domicile et vous les retournons propres et emballés dans les meilleurs délais.',
-      objectif: ['Récupération à domicile', 'Livraison express à Kinshasa'],
-      icone: Truck,
-      price: 3500,
-      unit: "course",
-      color: "bg-red-50 text-red-500 dark:bg-red-950/40 dark:text-red-400"
-    },
-    {
-      id: 'serviceEntreprise',
+      id: '6',
       nom: 'Service Entreprise',
       description: "Prise en charge globale et entretien d'uniformes, nappes, serviettes et linge professionnel.",
       objectif: ['Hôtels & Hébergements', 'Restaurants & Cafés', 'Salles de sport & Spas'],
@@ -73,17 +65,19 @@ export default function ServicesPage() {
     },
   ];
 
-  // État des quantités calqué sur les identifiants
+  // 2️⃣ États des quantités
   const [quantities, setQuantities] = useState(
     servicesList.reduce((acc, s) => ({ ...acc, [s.id]: 0 }), {})
   );
 
   const [isSubscribed, setIsSubscribed] = useState(false);
 
+  // 3️⃣ Fonctions de manipulation des quantités
   const increment = (id) => setQuantities(prev => ({ ...prev, [id]: prev[id] + 1 }));
   const decrement = (id) => setQuantities(prev => ({ ...prev, [id]: prev[id] > 0 ? prev[id] - 1 : 0 }));
   const removeService = (id) => setQuantities(prev => ({ ...prev, [id]: 0 }));
 
+  // 4️⃣ Calculs (subtotal, discount, total, etc.)
   const subtotalBase = servicesList.reduce((acc, s) => acc + (quantities[s.id] * s.price), 0);
   const discount = isSubscribed ? subtotalBase * 0.1 : 0;
   const subtotal = subtotalBase - discount;
@@ -94,19 +88,36 @@ export default function ServicesPage() {
   const missingForFreeDelivery = Math.max(0, freeDeliveryThreshold - subtotal);
   const progressPercentage = Math.min(100, (subtotal / freeDeliveryThreshold) * 100);
   const selectedItemsCount = Object.values(quantities).filter(q => q > 0).length;
-  const navigate = useNavigate();
-    // ✅ Définition de handleClick
-    const handleClick = () => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        // Connecté → action suivante
-        navigate('/etape-suivante');
-      } else {
-        // Non connecté → redirection vers login
-        navigate('/login?create=true');
+  const handleNext = () => {
+    if (selectedItemsCount === 0) {
+      alert('Veuillez sélectionner au moins un service.');
+      return;
+    }
+  
+    // ⚠️ On retire les icônes (non sérialisables)
+    const servicesSansIcones = servicesList.map(({ icone, ...rest }) => rest);
+  
+    navigate('/client/paiement', {
+      state: {
+        quantities,
+        services: servicesSansIcones,   // ✅ sans icônes
+        subtotalBase,
+        discount,
+        subtotal,
+        deliveryFee,
+        total,
+        isSubscribed,
       }
-    };
+    });
+  };
+  const [user, setUser] = useState(null);
 
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-300 antialiased">
       <Navbar />
@@ -164,7 +175,7 @@ export default function ServicesPage() {
                       <div className="flex-1">
                         <h3 className="font-bold text-slate-900 dark:text-white text-base leading-tight">{service.nom}</h3>
                         <p className="text-blue-600 dark:text-blue-400 font-extrabold text-sm mt-1">
-                          {service.price.toLocaleString()} <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500">FCFA / {service.unit}</span>
+                          {service.price.toLocaleString()} <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500">FC / {service.unit}</span>
                         </p>
                         <p className="text-slate-400 dark:text-slate-400 text-xs mt-2 font-normal leading-relaxed line-clamp-2">
                           {service.description}
@@ -215,136 +226,166 @@ export default function ServicesPage() {
               </button>
             </div>
           </div>
-
-          {/* COLONNE RÉCAPITULATIF PANIER */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800/60 shadow-xl shadow-slate-200/40 dark:shadow-none flex flex-col justify-between">
+{/* COLONNE RÉCAPITULATIF PANIER */}
+<div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800/60 shadow-xl shadow-slate-200/40 dark:shadow-none flex flex-col justify-between">
+  <div>
+    {/* ✅ Section statut de connexion */}
+    <div className="mb-6 p-3 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-800/40">
+      {user ? (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
+              {user.prenom?.charAt(0).toUpperCase()}
+            </div>
             <div>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Votre Panier</h2>
-                <span className="w-6 h-6 rounded-full bg-blue-600 dark:bg-blue-500 text-white flex items-center justify-center font-bold text-xs">
-                  {selectedItemsCount}
-                </span>
-              </div>
-
-              {/* Lignes d'articles sélectionnés */}
-              <div className="space-y-4 mb-6 max-h-64 overflow-y-auto pr-1">
-                {servicesList.map((service) => {
-                  const qte = quantities[service.id];
-                  if (qte === 0) return null;
-                  const MiniIcone = service.icone;
-
-                  return (
-                    <div key={service.id} className="flex items-center justify-between py-2 border-b border-slate-50 dark:border-slate-800/40">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 bg-slate-50 dark:bg-slate-800 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
-                          <MiniIcone className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-sm text-slate-900 dark:text-white leading-tight">{service.nom}</h4>
-                          <p className="text-xs text-slate-400 font-medium mt-0.5">{qte} {service.unit}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2.5">
-                        <span className="font-extrabold text-sm text-blue-600 dark:text-blue-400">
-                          {(qte * service.price).toLocaleString()} <span className="text-[10px] font-normal text-slate-400">FCFA</span>
-                        </span>
-                        <button 
-                          onClick={() => removeService(service.id)}
-                          className="text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 transition-colors text-lg font-bold px-1 cursor-pointer"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {selectedItemsCount === 0 && (
-                  <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-8 font-medium">Votre panier est vide.</p>
-                )}
-              </div>
-
-              {/* Lignes de calcul financiers */}
-              <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800/80 text-sm font-medium text-slate-500 dark:text-slate-400">
-                <div className="flex justify-between">
-                  <span>Sous-total brut</span>
-                  <span className="font-bold text-slate-900 dark:text-white">{subtotalBase.toLocaleString()} FCFA</span>
-                </div>
-                {isSubscribed && (
-                  <div className="flex justify-between text-green-600 dark:text-green-400">
-                    <span>Remise Fidélité (-10%)</span>
-                    <span className="font-bold">- {discount.toLocaleString()} FCFA</span>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span>Livraison</span>
-                  <span className="font-bold text-slate-900 dark:text-white">
-                    {deliveryFee > 0 ? `${deliveryFee.toLocaleString()} FCFA` : 'Gratuite'}
-                  </span>
-                </div>
-                <div className="flex justify-between text-base font-black text-slate-900 dark:text-white pt-3 border-t border-slate-100 dark:border-slate-800/80">
-                  <span>Total final</span>
-                  <span className="text-blue-600 dark:text-blue-400 text-lg font-black">{total.toLocaleString()} FCFA</span>
-                </div>
-              </div>
-
-              {/* Jauge Dynamique Livraison Gratuite */}
-              <div className="mt-6 bg-blue-50/60 dark:bg-blue-950/20 rounded-2xl p-4 border border-blue-100/60 dark:border-blue-900/30">
-                <div className="flex gap-3">
-                  <Truck className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
-                  <div className="w-full">
-                    <h5 className="font-bold text-xs text-slate-900 dark:text-white">Livraison gratuite dès 20 000 FCFA</h5>
-                    {missingForFreeDelivery > 0 ? (
-                      <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">Plus que {missingForFreeDelivery.toLocaleString()} FCFA pour économiser la livraison.</p>
-                    ) : (
-                      <p className="text-[11px] text-green-600 dark:text-green-400 font-bold mt-0.5">Félicitations ! Frais offerts sur Kinshasa.</p>
-                    )}
-                    <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full mt-2.5 overflow-hidden">
-                      <div 
-                        className="bg-blue-600 dark:bg-blue-500 h-full rounded-full transition-all duration-500" 
-                        style={{ width: `${progressPercentage}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Module de souscription récurrent d'abonnement */}
-              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800/80">
-                <h5 className="font-bold text-sm text-slate-900 dark:text-white">Activer un abonnement</h5>
-                <div className="mt-3 bg-slate-50 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800/40 rounded-xl p-3.5 flex items-center justify-between">
-                  <div>
-                    <span className="font-bold text-xs text-slate-900 dark:text-white block">Je m'abonne au pressing</span>
-                    <span className="text-[10px] text-green-600 dark:text-green-400 font-bold bg-green-50 dark:bg-green-950/30 px-1.5 py-0.5 rounded mt-1 inline-block">-10% immédiat</span>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={isSubscribed}
-                      onChange={() => setIsSubscribed(!isSubscribed)}
-                      className="sr-only peer" 
-                    />
-                    <div className="w-9 h-5 bg-slate-200 dark:bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 dark:after:border-slate-600 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 dark:peer-checked:bg-blue-500"></div>
-                  </label>
-                </div>
-              </div>
-
+              <p className="text-sm font-medium text-slate-900 dark:text-white">
+                Bonjour, {user.prenom} {user.nom}
+              </p>
+              <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">✅ Connecté</p>
             </div>
-
-            {/* CTA Final */}
-            <div className="mt-8 space-y-4">
-            <StepButton
-  onClick={handleClick}
-  label="Passer à l'étape suivante"
-  className="w-full bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white font-bold py-4 px-6 rounded-2xl flex items-center justify-center gap-2 transition-all duration-300 shadow-lg shadow-blue-500/10 transform hover:-translate-y-0.5 cursor-pointer"
-/>
-              <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-400 dark:text-slate-500">
-                <ShieldCheck className="w-4 h-4 text-green-500" />
-                Traitement et suivi sécurisés
-              </div>
-            </div>
-
           </div>
+          <button
+            onClick={() => {
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              setUser(null);
+              navigate('/');
+            }}
+            className="text-xs text-red-500 hover:text-red-700 font-medium"
+          >
+            Déconnexion
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-slate-900 dark:text-white">Vous n'êtes pas connecté</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Connectez‑vous pour passer commande</p>
+          </div>
+          <button
+            onClick={() => navigate('/login')}
+            className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-medium"
+          >
+            Se connecter
+          </button>
+        </div>
+      )}
+    </div>
+
+    {/* En-tête du panier */}
+    <div className="flex items-center justify-between mb-6">
+      <h2 className="text-lg font-bold text-slate-900 dark:text-white">Votre Panier</h2>
+      <span className="w-6 h-6 rounded-full bg-blue-600 dark:bg-blue-500 text-white flex items-center justify-center font-bold text-xs">
+        {selectedItemsCount}
+      </span>
+    </div>
+
+    {/* Liste des articles sélectionnés */}
+    <div className="space-y-4 mb-6 max-h-64 overflow-y-auto pr-1">
+      {servicesList.map((service) => {
+        const qte = quantities[service.id];
+        if (qte === 0) return null;
+        const MiniIcone = service.icone;
+
+        return (
+          <div key={service.id} className="flex items-center justify-between py-2 border-b border-slate-50 dark:border-slate-800/40">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-slate-50 dark:bg-slate-800 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                <MiniIcone className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white leading-tight">{service.nom}</h4>
+                <p className="text-xs text-slate-400 font-medium mt-0.5">
+                  {qte} {service.unit} × {service.price.toLocaleString()} FC
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <span className="font-extrabold text-sm text-blue-600 dark:text-blue-400">
+                {(qte * service.price).toLocaleString()} <span className="text-[10px] font-normal text-slate-400">FC</span>
+              </span>
+              <button 
+                onClick={() => removeService(service.id)}
+                className="text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 transition-colors text-lg font-bold px-1 cursor-pointer"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        );
+      })}
+
+      {selectedItemsCount === 0 && (
+        <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-8 font-medium">
+          Votre panier est vide.
+        </p>
+      )}
+    </div>
+
+    {/* Calculs financiers */}
+    <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800/80 text-sm font-medium text-slate-500 dark:text-slate-400">
+      <div className="flex justify-between">
+        <span>Sous-total brut</span>
+        <span className="font-bold text-slate-900 dark:text-white">{subtotalBase.toLocaleString()} FC</span>
+      </div>
+      {isSubscribed && (
+        <div className="flex justify-between text-green-600 dark:text-green-400">
+          <span>Remise Fidélité (-10%)</span>
+          <span className="font-bold">- {discount.toLocaleString()} FC</span>
+        </div>
+      )}
+      <div className="flex justify-between">
+        <span>Livraison</span>
+        <span className="font-bold text-slate-900 dark:text-white">
+          {deliveryFee > 0 ? `${deliveryFee.toLocaleString()} FC` : 'Gratuite'}
+        </span>
+      </div>
+      <div className="flex justify-between text-base font-black text-slate-900 dark:text-white pt-3 border-t border-slate-100 dark:border-slate-800/80">
+        <span>Total final</span>
+        <span className="text-blue-600 dark:text-blue-400 text-lg font-black">{total.toLocaleString()} FC</span>
+      </div>
+    </div>
+
+    {/* Jauge de livraison gratuite */}
+    <div className="mt-6 bg-blue-50/60 dark:bg-blue-950/20 rounded-2xl p-4 border border-blue-100/60 dark:border-blue-900/30">
+      <div className="flex gap-3">
+        <Truck className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+        <div className="w-full">
+          <h5 className="font-bold text-xs text-slate-900 dark:text-white">Livraison gratuite dès 20 000 FC</h5>
+          {missingForFreeDelivery > 0 ? (
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
+              Plus que {missingForFreeDelivery.toLocaleString()} FC pour économiser la livraison.
+            </p>
+          ) : (
+            <p className="text-[11px] text-green-600 dark:text-green-400 font-bold mt-0.5">
+              Félicitations ! Frais offerts sur Kinshasa.
+            </p>
+          )}
+          <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full mt-2.5 overflow-hidden">
+            <div 
+              className="bg-blue-600 dark:bg-blue-500 h-full rounded-full transition-all duration-500" 
+              style={{ width: `${progressPercentage}%` }}
+            ></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+   
+  </div>
+
+  {/* CTA Final */}
+  <div className="mt-8 space-y-4">
+    <StepButton
+      action={handleNext}
+      label="Continuer"
+    />
+    <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-400 dark:text-slate-500">
+      <ShieldCheck className="w-4 h-4 text-green-500" />
+      Traitement et suivi sécurisés
+    </div>
+  </div>
+</div>
 
         </div>
 

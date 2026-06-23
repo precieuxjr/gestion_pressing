@@ -10,6 +10,10 @@ export const commandesService = {
         method: 'PATCH',
         body: JSON.stringify({ status }),
     }),
+ 
+    getPayees: () => apiFetch('/admin/commandes/payees'), 
+  
+ 
 
 
 };

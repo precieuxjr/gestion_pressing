@@ -1,7 +1,10 @@
 import { apiFetch } from './api';
 
 export const paiementsService = {
-  getAll: () => apiFetch('/admin/paiements'),
+  getAll: async () => {
+    const response = await apiFetch('/admin/paiements');
+    return response?.data || []; // directement le tableau
+  },
   getStats: () => apiFetch('/admin/paiements/stats'),
   getByCommande: (commandeId) => apiFetch(`/admin/paiements/commande/${commandeId}`),
   getById: (publicId) => apiFetch(`/admin/paiements/${publicId}`),

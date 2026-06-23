@@ -1,19 +1,18 @@
 import Commande from '../../models/commandes.js';
+import User from '../../models/users.js';
 
 // ========================================
 // 1. Récupérer les commandes du livreur connecté
 // ========================================
 export const getMesCommandes = async (req, res) => {
   try {
-    console.log('req.user:', req.user); // doit afficher { id, email, role, ... }
     const livreurId = req.user.public_id;
-
-    // Vérification de sécurité
     if (!livreurId) {
       return res.status(401).json({
         success: false,
         message: 'Utilisateur non authentifié'
-      });}
+      });
+    }
     const rows = await Commande.findByLivreurId(livreurId);
     res.json({ success: true, data: rows });
   } catch (error) {
@@ -26,7 +25,7 @@ export const getMesCommandes = async (req, res) => {
 // ========================================
 export const getCommandesDisponibles = async (req, res) => {
   try {
-    const livreurId = req.user.id;
+    const livreurId = req.user.public_id;
     const rows = await Commande.findDisponiblesPourLivreur(livreurId);
     res.json({ success: true, data: rows });
   } catch (error) {
@@ -39,8 +38,8 @@ export const getCommandesDisponibles = async (req, res) => {
 // ========================================
 export const accepterCommande = async (req, res) => {
   try {
-    const { id } = req.params; // public_id
-    const livreurId = req.user.id;
+    const { id } = req.params;
+    const livreurId = req.user.public_id;
 
     const commande = await Commande.findByPublicId(id);
     if (!commande) {
@@ -64,44 +63,81 @@ export const accepterCommande = async (req, res) => {
 // ========================================
 // 4. Mettre à jour le statut de livraison
 // ========================================
-export const updateStatutLivraison = async (req, res) => {
+export async function updateStatutLivraison(req, res) {
   try {
-    const { id } = req.params;
+    const { publicId } = req.params;
     const { statut_livraison } = req.body;
-    const livreurId = req.user.id;
 
-    const commande = await Commande.findByPublicId(id);
-    if (!commande) {
-      return res.status(404).json({ success: false, message: 'Commande introuvable' });
+    if (!statut_livraison) {
+      return res.status(400).json({ error: 'statut_livraison requis' });
     }
-    if (commande.livreur_id !== livreurId) {
-      return res.status(403).json({ success: false, message: 'Vous n\'êtes pas assigné à cette commande' });
+
+    const commande = await Commande.findByPublicId(publicId);
+    if (!commande) {
+      return res.status(404).json({ error: 'Commande introuvable' });
     }
 
     await commande.updateStatutLivraison(statut_livraison);
-    if (statut_livraison === 'Livrée') {
-      await commande.marquerLivree();
+
+    if (statut_livraison === 'Livrée' || statut_livraison === 'Annulée') {
+      if (commande.livreur_id) {
+        const livreur = await User.findById(commande.livreur_id);
+        if (livreur) {
+          const activeCount = await Commande.countActiveForLivreur(livreur.public_id, true);
+          if (activeCount === 0) {
+            await User.updateDisponibilite(livreur.public_id, 'Disponible');
+          } else if (activeCount < 5) {
+            const current = await User.findByPublicId(livreur.public_id);
+            if (current && current.disponibilite === 'Indisponible') {
+              await User.updateDisponibilite(livreur.public_id, 'En livraison');
+            }
+          }
+        }
+      }
     }
 
-    res.json({
-      success: true,
-      message: 'Statut de livraison mis à jour',
-      data: commande.toJSON()
-    });
+    const updated = await Commande.findByIdWithLivraison(publicId);
+
+    const io = req.app.get('io');
+    if (io) {
+      let livreurPublicId = null;
+      if (commande.livreur_id) {
+        const livreur = await User.findById(commande.livreur_id);
+        livreurPublicId = livreur?.public_id || null;
+      }
+
+      const client = await User.findById(commande.user_id);
+      const clientPublicId = client?.public_id || null;
+
+      const payload = {
+        type: 'statut_livraison_change',
+        commandeId: publicId,
+        newStatutLivraison: statut_livraison,
+        updatedAt: new Date()
+      };
+
+      if (livreurPublicId) {
+        io.to(`user_${livreurPublicId}`).emit('commande_updated', payload);
+      }
+      if (clientPublicId) {
+        io.to(`user_${clientPublicId}`).emit('commande_updated', payload);
+      }
+    }
+
+    res.json(updated);
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('❌ Erreur updateStatutLivraison:', error);
+    res.status(500).json({ error: error.message });
   }
-};
+}   // ✅ accolade fermante ajoutée ici
 
 // ========================================
 // 5. Récupérer les statistiques du livreur
 // ========================================
 export const getMesStatistiques = async (req, res) => {
   try {
-    const livreurId = req.user.id;
-    // Utilisation de la méthode statique du modèle
+    const livreurId = req.user.public_id;
     const stats = await Commande.getStatsForLivreur(livreurId);
-    
     res.json({
       success: true,
       data: stats
@@ -117,13 +153,14 @@ export const getMesStatistiques = async (req, res) => {
 export const getCommandeDetails = async (req, res) => {
   try {
     const { id } = req.params;
-    const livreurId = req.user.id;
+    const livreurId = req.user.public_id;
 
     const commande = await Commande.findByIdWithLivraison(id);
     if (!commande) {
       return res.status(404).json({ success: false, message: 'Commande introuvable' });
     }
-    if (commande.livreur_id !== livreurId) {
+    const livreurNum = await User.findByPublicId(livreurId);
+    if (!livreurNum || commande.livreur_id !== livreurNum.id) {
       return res.status(403).json({ success: false, message: 'Accès non autorisé' });
     }
 
@@ -146,13 +183,14 @@ export const getCommandeDetails = async (req, res) => {
 export const marquerCommandePayee = async (req, res) => {
   try {
     const { id } = req.params;
-    const livreurId = req.user.id;
+    const livreurId = req.user.public_id;
 
     const commande = await Commande.findByPublicId(id);
     if (!commande) {
       return res.status(404).json({ success: false, message: 'Commande introuvable' });
     }
-    if (commande.livreur_id !== livreurId) {
+    const livreurNum = await User.findByPublicId(livreurId);
+    if (!livreurNum || commande.livreur_id !== livreurNum.id) {
       return res.status(403).json({ success: false, message: 'Vous n\'êtes pas assigné à cette commande' });
     }
     if (commande.statut !== 'En attente') {

@@ -1,7 +1,8 @@
-// services/api.js
-const API_BASE = 'http://localhost:5000/api';
+// src/services/api.js
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export const apiFetch = async (endpoint, options = {}) => {
+  console.log('🌐 URL complète :', `${API_BASE}${endpoint}`);
   const token = localStorage.getItem('token');
   const headers = {
     'Content-Type': 'application/json',

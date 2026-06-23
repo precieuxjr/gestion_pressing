@@ -7,65 +7,121 @@ import {
   MapPin, 
   User, 
   Calendar,
-  ArrowRight
+  ArrowRight,
+  Loader2
 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { getMesStatistiques, getMesCommandes } from '../services/commandes';
 
 export default function LivreurDashboard() {
-  // Simuler des données (à remplacer par des appels API)
   const [stats, setStats] = useState({
-    totalCommandes: 0,
+    total: 0,
     enCours: 0,
-    terminees: 0,
-    enAttente: 0
+    livrees: 0,
+    enAttente: 0,
+    collectees: 0
   });
-
   const [commandesRecentes, setCommandesRecentes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Simulation de chargement de données
   useEffect(() => {
-    // Ici, vous ferez un fetch vers votre API
-    // Exemple de données factices
-    const fakeStats = {
-      totalCommandes: 28,
-      enCours: 4,
-      terminees: 18,
-      enAttente: 6
-    };
-    setStats(fakeStats);
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        // Récupérer les statistiques
+        const statsData = await getMesStatistiques();
+        console.log('📊 Statistiques reçues :', statsData);
 
-    const fakeCommandes = [
-      { id: 'CMD-001', client: 'Jean Dupont', adresse: '12 rue de la Paix, Kinshasa', statut: 'en_livraison', date: '2026-06-16' },
-      { id: 'CMD-002', client: 'Marie Claire', adresse: '45 avenue des Fleurs', statut: 'en_attente', date: '2026-06-16' },
-      { id: 'CMD-003', client: 'Pierre Kasongo', adresse: '78 boulevard du 30 Juin', statut: 'terminee', date: '2026-06-15' },
-      { id: 'CMD-004', client: 'Sophie Ndala', adresse: '23 rue de la Révolte', statut: 'en_livraison', date: '2026-06-16' },
-      { id: 'CMD-005', client: 'Alain Mukendi', adresse: '6 avenue de l’Indépendance', statut: 'en_attente', date: '2026-06-16' },
-    ];
-    setCommandesRecentes(fakeCommandes);
+        // Récupérer les commandes
+        const commandesData = await getMesCommandes();
+        console.log('📦 Commandes reçues :', commandesData);
+
+        // Mapper les statistiques
+        setStats({
+          total: statsData.data?.total || 0,
+          enCours: statsData.data?.en_cours || 0,
+          livrees: statsData.data?.livrees || 0,
+          enAttente: statsData.data?.en_attente || 0,
+          collectees: statsData.data?.collectees || 0
+        });
+
+        // Mapper les commandes (prendre les 5 plus récentes)
+        const rawCommandes = commandesData.data || [];
+        const formatted = rawCommandes.slice(0, 5).map(item => ({
+          id: item.id,
+          client: item.client || 'Client inconnu',
+          adresse: item.adresse_livraison || item.adresse_collecte || 'Adresse non fournie',
+          statut: item.statut_livraison || 'En attente',
+          date: item.depositDate ? new Date(item.depositDate).toLocaleDateString('fr-FR') : '—'
+        }));
+        setCommandesRecentes(formatted);
+        setError(null);
+      } catch (err) {
+        console.error('❌ Erreur chargement dashboard :', err);
+        setError(err.message);
+        toast.error('Erreur de chargement des données');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
-  // Fonction pour déterminer la couleur du statut
+  // Fonction pour déterminer la couleur du badge selon le statut de livraison
   const getStatutBadge = (statut) => {
-    switch (statut) {
-      case 'en_livraison':
-        return 'bg-blue-100 text-blue-700';
-      case 'en_attente':
-        return 'bg-yellow-100 text-yellow-700';
-      case 'terminee':
-        return 'bg-green-100 text-green-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
-    }
+    const s = statut?.toLowerCase().trim() || '';
+    if (s === 'en cours' || s === 'encours') return 'bg-blue-100 text-blue-700';
+    if (s === 'en attente' || s === 'enattente') return 'bg-yellow-100 text-yellow-700';
+    if (s === 'livrée' || s === 'livree') return 'bg-green-100 text-green-700';
+    if (s === 'collectée' || s === 'collectee') return 'bg-purple-100 text-purple-700';
+    if (s === 'annulée' || s === 'annulee') return 'bg-red-100 text-red-700';
+    return 'bg-gray-100 text-gray-700';
   };
 
-  // Traduction du statut
+  // Traduction du statut pour l'affichage
   const traduireStatut = (statut) => {
     const map = {
-      'en_livraison': 'En livraison',
+      'en cours': 'En cours',
       'en_attente': 'En attente',
-      'terminee': 'Terminée'
+      'en attente': 'En attente',
+      'livrée': 'Livrée',
+      'livree': 'Livrée',
+      'collectée': 'Collectée',
+      'collectee': 'Collectée',
+      'annulée': 'Annulée',
+      'annulee': 'Annulée'
     };
-    return map[statut] || statut;
+    return map[statut?.toLowerCase().trim()] || statut || 'En attente';
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-10 h-10 text-emerald-600 animate-spin" />
+          <p className="text-gray-500">Chargement du tableau de bord...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 text-center">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6 max-w-lg mx-auto">
+          <p className="text-red-600">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
+          >
+            Réessayer
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -80,7 +136,7 @@ export default function LivreurDashboard() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-500">Total commandes</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">{stats.totalCommandes}</p>
+            <p className="text-2xl font-bold text-gray-900 mt-1">{stats.total}</p>
           </div>
           <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
             <Package size={24} />
@@ -89,7 +145,7 @@ export default function LivreurDashboard() {
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-500">En livraison</p>
+            <p className="text-sm font-medium text-gray-500">En cours</p>
             <p className="text-2xl font-bold text-blue-600 mt-1">{stats.enCours}</p>
           </div>
           <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
@@ -109,8 +165,8 @@ export default function LivreurDashboard() {
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-500">Terminées</p>
-            <p className="text-2xl font-bold text-green-600 mt-1">{stats.terminees}</p>
+            <p className="text-sm font-medium text-gray-500">Livrées</p>
+            <p className="text-2xl font-bold text-green-600 mt-1">{stats.livrees}</p>
           </div>
           <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center text-green-600">
             <CheckCircle size={24} />
@@ -177,7 +233,7 @@ export default function LivreurDashboard() {
         )}
       </div>
 
-      {/* Section supplémentaire : conseil ou info */}
+      {/* Section conseil (inchangée) */}
       <div className="mt-6 bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Truck size={20} className="text-emerald-600" />

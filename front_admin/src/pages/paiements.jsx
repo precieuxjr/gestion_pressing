@@ -41,7 +41,8 @@ export default function Paiements() {
     setError(null);
     try {
       const data = await paiementsService.getAll();
-      setPaiements(data);
+      const paiementsData = data?.data || data || [];
+      setPaiements(Array.isArray(paiementsData) ? paiementsData : []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -51,8 +52,8 @@ export default function Paiements() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const data = await paiementsService.getStats();
-      setStats(data);
+      const response = await paiementsService.getStats();
+      setStats(response?.data || null);
     } catch (err) {
       console.error(err);
     }
@@ -298,9 +299,9 @@ export default function Paiements() {
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
     {p.commande_reference || p.reference}
 </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {p.client_nom || p.commande_id}
-                      </td>
+<td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+  {p.client_nom || p.commande_id}
+</td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
                         {p.montant.toLocaleString()} FCFA
                       </td>
@@ -328,8 +329,8 @@ export default function Paiements() {
                         </select>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(p.date_paiement).toLocaleDateString('fr-FR')}
-                      </td>
+  {p.date_paiement ? new Date(p.date_paiement).toLocaleDateString('fr-FR') : '—'}
+</td>
                       <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end gap-2">
                           <button

@@ -1,28 +1,63 @@
+// src/services/livraison.js
 import { apiFetch } from './api';
 
+/**
+ * Service pour la gestion des livraisons (admin)
+ */
 export const livraisonService = {
-    getLivreursDisponibles: () => apiFetch('/admin/livraisons/livreurs/disponibles'),
-    getAllLivreurs: () => apiFetch('/admin/livraisons/livreurs'),
+  /**
+   * Récupère la liste des livreurs disponibles
+   */
+  getLivreursDisponibles: () => {
+    console.log('🔍 Appel GET :', '/admin/livraisons/livreurs/disponibles');
+    return apiFetch('/admin/livraisons/livreurs/disponibles');
+  },
 
-    assignerLivreur: (commandeId, livreurId) =>
-      apiFetch(`/admin/livraisons/commandes/${commandeId}/assigner`, {
-          method: 'PATCH',
-          body: JSON.stringify({ livreur_id: livreurId }),
-      }),
+  /**
+   * Récupère la liste de tous les livreurs (admin)
+   */
+  getAllLivreurs: () => apiFetch('/admin/livraisons/livreurs'),
 
+  /**
+   * Assigner un livreur à une commande
+   * @param {string} commandePublicId - public_id de la commande
+   * @param {string} livreurPublicId - public_id du livreur
+   */
+  assignerLivreur: (commandePublicId, livreurPublicId) =>
+    apiFetch(`/admin/livraisons/commandes/${commandePublicId}/assigner`, {  // ← 'assigner' sans tiret
+        method: 'PATCH',   // ← utiliser PATCH (comme défini dans le backend)
+        body: JSON.stringify({ livreur_id: livreurPublicId }),
+    }),
 
-    updateStatutLivraison: (commandeId, statut) =>
-        apiFetch(`/admin/livraisons/commandes/${commandeId}/statut`, {
-            method: 'PATCH',
-            body: JSON.stringify({ statut_livraison: statut }),
-        }),
-        getCommandesLivraison: (statut = null) => {
-          const url = statut ? `/admin/livraisons/commandes?statut=${statut}` : '/admin/livraisons/commandes';
-          return apiFetch(url);
-      },
+  /**
+   * Mettre à jour le statut de livraison d'une commande
+   * @param {string} commandePublicId - public_id de la commande
+   * @param {string} statut - nouveau statut (ex: 'En cours', 'Livrée')
+   */
+  updateStatutLivraison: (commandePublicId, statut) =>
+    apiFetch(`/admin/livraisons/commandes/${commandePublicId}/statut`, {
+      method: 'PATCH',
+      body: JSON.stringify({ statut_livraison: statut }),
+    }),
+
+  /**
+   * Récupérer les commandes de livraison (avec filtre optionnel par statut)
+   * @param {string|null} statut - statut de livraison (ex: 'En attente', 'Livrée')
+   */
+  getCommandesLivraison: (statut = 'Pret') => {
+    const url = statut 
+      ? `/admin/livraisons/commandes?statut=${statut}` 
+      : '/admin/livraisons/commandes';
+    return apiFetch(url);
+  },
   
-      annulerAssignation: (commandeId) =>
-        apiFetch(`/admin/livraisons/commandes/${commandeId}/assignation`, {
-          method: 'DELETE',
-        }),
+
+  /**
+   * Annuler l'assignation d'un livreur à une commande
+   * @param {string} commandePublicId - public_id de la commande
+   */
+  annulerAssignation: (commandePublicId) =>
+    apiFetch(`/admin/livraisons/commandes/${commandePublicId}/assignation`, {
+        method: 'DELETE',
+    }),
 };

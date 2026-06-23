@@ -1,3 +1,4 @@
+// src/pages/admin/Parametres.jsx
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
@@ -19,7 +20,8 @@ import {
 } from 'lucide-react';
 import NotificationIcon from '../components/notifiocations';
 import NavBarHorizontal from '../components/navbar_horizontal';
-
+import { socket } from '../services/socket'; // ✅ Import du socket
+import toast from 'react-hot-toast';
 export default function Parametres() {
   const [activeTab, setActiveTab] = useState('profil');
   const [loading, setLoading] = useState(false);
@@ -68,11 +70,9 @@ export default function Parametres() {
 
   // Récupérer les données au chargement
   useEffect(() => {
-    // Ici, vous feriez un appel API pour charger les données actuelles
-    // Exemple : fetch('/api/parametres').then(...)
     console.log('Chargement des paramètres...');
+    // ✅ Plus d'écoute WebSocket
   }, []);
-
   const handleProfilChange = (e) => {
     setProfil({ ...profil, [e.target.name]: e.target.value });
   };

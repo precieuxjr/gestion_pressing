@@ -1,4 +1,3 @@
-// pages/Clients.jsx
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Edit2, Trash2, MoreHorizontal } from 'lucide-react';
@@ -27,6 +26,7 @@ export default function Clients() {
   const [formLoading, setFormLoading] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
+
   const fetchClients = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -42,7 +42,9 @@ export default function Clients() {
 
   useEffect(() => {
     fetchClients();
+    // ✅ Plus d'écoute WebSocket
   }, [fetchClients]);
+
 
   const handleOpenForm = (client = null) => {
     if (client) {

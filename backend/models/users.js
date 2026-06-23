@@ -224,6 +224,15 @@ static async findAvailableLivreurs() {
   `);
   return rows;
 }
+static async findAvailableLivreurs() {
+  const [rows] = await db.execute(
+    `SELECT public_id, nom, prenom, telephone, disponibilite
+     FROM users
+     WHERE role = 'livreur' AND disponibilite = 'Disponible'
+     ORDER BY nom ASC`
+  );
+  return rows;
+}
 // Mettre à jour la disponibilité d'un livreur
 // models/users.js
 static async updateDisponibilite(publicId, statut) {

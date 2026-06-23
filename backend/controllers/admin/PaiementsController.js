@@ -1,135 +1,146 @@
 import Paiement from '../../models/paiements.js';
-
-// Récupérer tous les paiements (avec filtres optionnels)
-export async function getAllPaiements(req, res) {
+import Commande from '../../models/commandes.js';
+import db from '../../config/db.js';
+export const getAllPaiements = async (req, res) => {
     try {
-        const { statut, mode_paiement, date_debut, date_fin } = req.query;
-        const filters = {};
-        if (statut) filters.statut = statut;
-        if (mode_paiement) filters.mode_paiement = mode_paiement;
-        if (date_debut) filters.date_debut = date_debut;
-        if (date_fin) filters.date_fin = date_fin;
-        
-        const paiements = await Paiement.findAll(filters);
-        res.json(paiements);
+      const filters = {
+        statut: req.query.statut,
+        mode_paiement: req.query.mode_paiement,
+        date_debut: req.query.date_debut,
+        date_fin: req.query.date_fin,
+      };
+      const paiements = await Paiement.findAll(filters);
+      res.json({ success: true, data: paiements });
     } catch (error) {
-        console.error('❌ Erreur getAllPaiements:', error);
-        res.status(500).json({ error: error.message });
+      console.error('❌ Erreur getAllPaiements:', error);
+      res.status(500).json({ success: false, message: error.message });
     }
-}
-
-// Récupérer un paiement par son public_id
-export async function getPaiementById(req, res) {
+  };
+  
+  // ==========================================
+  // ADMIN – Récupérer un paiement par public_id
+  // ==========================================
+  export const getPaiementById = async (req, res) => {
     try {
-        const { publicId } = req.params;
-        const paiement = await Paiement.findByPublicId(publicId);
-        if (!paiement) {
-            return res.status(404).json({ error: 'Paiement non trouvé' });
-        }
-        res.json(paiement);
+      const { publicId } = req.params;
+      const paiement = await Paiement.findByPublicId(publicId);
+      if (!paiement) {
+        return res.status(404).json({ success: false, message: 'Paiement introuvable' });
+      }
+      res.json({ success: true, data: paiement });
     } catch (error) {
-        console.error('❌ Erreur getPaiementById:', error);
-        res.status(500).json({ error: error.message });
+      console.error('❌ Erreur getPaiementById:', error);
+      res.status(500).json({ success: false, message: error.message });
     }
-}
-
-// Récupérer tous les paiements d'une commande
-export async function getPaiementsByCommande(req, res) {
+  };
+  
+  // ==========================================
+  // ADMIN – Récupérer tous les paiements d'une commande
+  // ==========================================
+  export const getPaiementsByCommande = async (req, res) => {
     try {
-        const { commandeId } = req.params;
-        const paiements = await Paiement.findByCommandeId(commandeId);
-        res.json(paiements);
+      const { commandeId } = req.params;
+      const paiements = await Paiement.findByCommandeId(commandeId);
+      res.json({ success: true, data: paiements });
     } catch (error) {
-        console.error('❌ Erreur getPaiementsByCommande:', error);
-        res.status(500).json({ error: error.message });
+      console.error('❌ Erreur getPaiementsByCommande:', error);
+      res.status(500).json({ success: false, message: error.message });
     }
-}
-
-// Créer un nouveau paiement
-export async function createPaiement(req, res) {
+  };
+  
+  // ==========================================
+  // ADMIN – Créer un paiement
+  // ==========================================
+  export const createPaiement = async (req, res) => {
     try {
-        const { commande_id, montant, mode_paiement, note } = req.body;
-        
-        if (!commande_id || !montant || !mode_paiement) {
-            return res.status(400).json({ error: 'commande_id, montant et mode_paiement sont requis' });
-        }
-        
-        const paiement = new Paiement({
-            commande_id,
-            montant,
-            mode_paiement,
-            note: note || null
-        });
-        
-        await paiement.creer();
-        res.status(201).json(paiement);
+      const { commande_public_id, montant, mode_paiement, transaction_id, statut } = req.body;
+  
+      if (!commande_public_id || !montant || montant <= 0 || !mode_paiement) {
+        return res.status(400).json({ error: 'commande_public_id, montant et mode_paiement sont requis' });
+      }
+  
+      const paiement = await Paiement.createForAdmin(
+        commande_public_id,
+        montant,
+        mode_paiement,
+        transaction_id,
+        statut
+      );
+  
+      res.status(201).json({
+        success: true,
+        message: 'Paiement créé avec succès',
+        data: paiement.toJSON(),
+      });
     } catch (error) {
-        console.error('❌ Erreur createPaiement:', error);
-        res.status(500).json({ error: error.message });
+      // ... gestion d'erreur
     }
-}
-
-// Mettre à jour le statut d'un paiement
-export async function updatePaiementStatut(req, res) {
+  };
+  
+  // ==========================================
+  // ADMIN – Mettre à jour le statut d'un paiement
+  // ==========================================
+  export const updatePaiementStatut = async (req, res) => {
     try {
-        const { publicId } = req.params;
-        const { statut } = req.body;
-        
-        if (!statut) {
-            return res.status(400).json({ error: 'Le statut est requis' });
-        }
-        
-        const paiement = await Paiement.findByPublicId(publicId);
-        if (!paiement) {
-            return res.status(404).json({ error: 'Paiement non trouvé' });
-        }
-        
-        await paiement.updateStatut(statut);
-        res.json(paiement);
+      const { publicId } = req.params;
+      const { statut } = req.body;
+      const paiement = await Paiement.findByPublicId(publicId);
+      if (!paiement) {
+        return res.status(404).json({ success: false, message: 'Paiement introuvable' });
+      }
+      await paiement.updateStatut(statut);
+      res.json({ success: true, message: 'Statut mis à jour', data: paiement.toJSON() });
     } catch (error) {
-        console.error('❌ Erreur updatePaiementStatut:', error);
-        res.status(500).json({ error: error.message });
+      console.error('❌ Erreur updatePaiementStatut:', error);
+      res.status(500).json({ success: false, message: error.message });
     }
-}
-
-// Mettre à jour la note d'un paiement
-export async function updatePaiementNote(req, res) {
+  };
+  
+  // ==========================================
+  // ADMIN – Mettre à jour la note d'un paiement
+  // ==========================================
+  export const updatePaiementNote = async (req, res) => {
     try {
-        const { publicId } = req.params;
-        const { note } = req.body;
-        
-        const paiement = await Paiement.findByPublicId(publicId);
-        if (!paiement) {
-            return res.status(404).json({ error: 'Paiement non trouvé' });
-        }
-        
-        await paiement.updateNote(note);
-        res.json(paiement);
+      const { publicId } = req.params;
+      const { note } = req.body;
+  
+      const paiement = await Paiement.findByPublicId(publicId);
+      if (!paiement) {
+        return res.status(404).json({ success: false, message: 'Paiement introuvable' });
+      }
+  
+      await paiement.updateNote(note);
+      res.json({ success: true, message: 'Note mise à jour', data: paiement.toJSON() });
     } catch (error) {
-        console.error('❌ Erreur updatePaiementNote:', error);
-        res.status(500).json({ error: error.message });
+      console.error('❌ Erreur updatePaiementNote:', error);
+      res.status(500).json({ success: false, message: error.message });
     }
-}
-
-// Supprimer un paiement
-export async function deletePaiement(req, res) {
+  };
+  
+  // ==========================================
+  // ADMIN – Supprimer un paiement
+  // ==========================================
+  export const deletePaiement = async (req, res) => {
     try {
-        const { publicId } = req.params;
-        await Paiement.delete(publicId);
-        res.json({ message: 'Paiement supprimé avec succès' });
+      const { publicId } = req.params;
+      await Paiement.delete(publicId);
+      res.json({ success: true, message: 'Paiement supprimé' });
     } catch (error) {
-        console.error('❌ Erreur deletePaiement:', error);
-        res.status(500).json({ error: error.message });
+      console.error('❌ Erreur deletePaiement:', error);
+      res.status(500).json({ success: false, message: error.message });
     }
-}
-
-// Récupérer les statistiques globales des paiements
-export async function getPaiementsStats(req, res) {
+  };
+  
+  // ==========================================
+  // ADMIN – Statistiques globales des paiements
+  // ==========================================
+  export const getPaiementsStats = async (req, res) => {
     try {
-        const stats = await Paiement.getStats();
-        res.json(stats);
+      const stats = await Paiement.getStats();
+      res.json({ success: true, data: stats });
     } catch (error) {
-        console.error('❌ Erreur getPaiementsStats:', error);
-        res.status(500).json({ error: error.message });
+      console.error('❌ Erreur getPaiementsStats:', error);
+      res.status(500).json({ success: false, message: error.message });
     }
-}
+  };
+  

@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Shirt, Truck, Undo2, DollarSign, Bell } from 'lucide-react';
+import { Shirt, Truck, Undo2, DollarSign } from 'lucide-react';
 import Theme from '../components/theme';
 import illus_person from '../assets/dashboard/undraw_all-the-data_ijgn.svg';
 import { commandesService } from '../services/commandes';
 import { decodeToken } from '../utils/jwt';
+// import { socket } from '../services/socket'; // <-- SUPPRIMÉ
+import NavBarHorizontal from '../components/navbar_horizontal';
 
 // Variants d'animation
 const containerVariants = {
@@ -52,43 +54,44 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Charger les commandes et calculer les indicateurs
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const orders = await commandesService.getAll();
-        setRecentOrders(orders.slice(0, 5));
+  const fetchDashboardData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const orders = await commandesService.getAll();
+      setRecentOrders(orders.slice(0, 5));
 
-        const totalRecuperer = orders.filter(
-          (o) => o.status === 'En attente' || o.status === 'En cours'
-        ).length;
-        const totalLivrer = orders.filter(
-          (o) => o.status === 'Livrée' || o.status === 'Prête à retirer'
-        ).length;
-        const totalRembourses = orders.filter(
-          (o) => o.status === 'Annulée'
-        ).length;
-        const revenu = orders
-          .filter((o) => o.status === 'Payée' || o.status === 'Livrée')
-          .reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
+      const totalRecuperer = orders.filter(
+        (o) => o.status === 'En attente' || o.status === 'En cours'
+      ).length;
+      const totalLivrer = orders.filter(
+        (o) => o.status === 'Livrée' || o.status === 'Prête à retirer'
+      ).length;
+      const totalRembourses = orders.filter(
+        (o) => o.status === 'Annulée'
+      ).length;
+      const revenu = orders
+        .filter((o) => o.status === 'Payée' || o.status === 'Livrée')
+        .reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
 
-        setStats({
-          aRecuperer: totalRecuperer,
-          aLivrer: totalLivrer,
-          rembourses: totalRembourses,
-          revenuMensuel: revenu,
-        });
-      } catch (err) {
-        console.error('Erreur chargement dashboard :', err);
-        setError('Impossible de charger les données.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+      setStats({
+        aRecuperer: totalRecuperer,
+        aLivrer: totalLivrer,
+        rembourses: totalRembourses,
+        revenuMensuel: revenu,
+      });
+      setError(null);
+    } catch (err) {
+      console.error('Erreur chargement dashboard :', err);
+      setError('Impossible de charger les données.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchDashboardData();
+    // ✅ Plus d'écoute WebSocket
+  }, [fetchDashboardData]);
 
   // Indicateurs pour les cartes
   const statsCards = [
@@ -149,22 +152,7 @@ export default function Dashboard() {
           transition={{ duration: 0.4 }}
           className="top-1 flex flex-row justify-between items-center mx-8"
         >
-          <Theme />
-          <div className="flex flex-col">
-            <span className="text-blue-600 text-[11px] text-center tracking-wider">
-              Dashboard
-            </span>
-            <h1 className="font-bold text-[12px]">Console de Pilotage</h1>
-          </div>
-          <div className="flex flex-row items-center gap-1">
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Bell className="w-7 h-7 p-1 bg-gray-200 rounded-lg" />
-            </motion.div>
-            <div className="h-5 border border-gray-300"></div>
-            <p className="text-[12px] font-bold uppercase">
-              {user?.prenom || ''} {user?.nom}
-            </p>
-          </div>
+        <NavBarHorizontal/>
         </motion.header>
 
         {/* Welcome block */}
@@ -191,13 +179,13 @@ export default function Dashboard() {
               améliorez la satisfaction client
             </p>
             <Link to="/admin/clients">
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="text-[12px] p-2 bg-blue-500 text-white font-semibold uppercase my-1 rounded-xl"
-            >
-              Evolution Clientele
-            </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="text-[12px] p-2 bg-blue-500 text-white font-semibold uppercase my-1 rounded-xl"
+              >
+                Evolution Clientele
+              </motion.button>
             </Link>
           </div>
           <div className="relative w-30 h-30 mx-10 px-4">

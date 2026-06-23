@@ -20,6 +20,10 @@ export default class Commande {
     this.created_at = data.created_at;
     this.updated_at = data.updated_at;
     this.livreur_id = data.livreur_id || null;
+     // ✅ Ajout des champs client
+     this.client = data.client || null;
+     this.phone = data.telephone || null;
+     this.email = data.email || null;
   }
 
   // Formater une date pour MySQL DATETIME
@@ -48,7 +52,9 @@ export default class Commande {
       throw new Error("l'adresse de collecte est requis !");
     if (!this.adresse_livraison)
       throw new Error("l'adresse de livraison est requis !");
-
+    console.log('🔍 STATUT avant validation :', this.statut);
+    console.log('🔍 TYPE :', typeof this.statut);
+    console.log('🔍 LONGUEUR :', this.statut?.length);
     const statutsValides = ['En attente', 'Payée', 'Annulée', 'Prêt', 'Retirer', 'Livrée'];
     if (!statutsValides.includes(this.statut)) {
       throw new Error('Statut invalide');
@@ -123,16 +129,7 @@ export default class Commande {
     return this;
   }
 
-  async getDetails() {
-    const [rows] = await db.execute(
-      `SELECT dc.*, s.nom as service_nom 
-         FROM details_commandes dc
-         JOIN services s ON dc.service_id = s.id
-         WHERE dc.commande_id = ?`,
-      [this.id]
-    );
-    return rows; // toujours un tableau
-  }
+
 
   async recalculerTotal() {
     if (!this.id) throw new Error('Commande non encore enregistrée');
@@ -165,6 +162,7 @@ export default class Commande {
     );
     return rows[0] ? new Commande(rows[0]) : null;
   }
+  // models/commande.js
 
   async getDetails() {
     console.log('🔍 getDetails - commande_id:', this.id);
@@ -245,46 +243,6 @@ export default class Commande {
     return rows[0] ? new Commande(rows[0]) : null;
   }
 
-  async assignerLivreur(livreurPublicId) {
-    // Récupérer l'ID numérique du livreur
-    const [rows] = await db.execute(
-      'SELECT id FROM users WHERE public_id = ?',
-      [livreurPublicId]
-    );
-    if (rows.length === 0) throw new Error('Livreur introuvable');
-    const livreurIdNum = rows[0].id;
-  
-    const [result] = await db.execute(
-      `UPDATE commandes 
-       SET livreur_id = ?, statut_livraison = 'En cours', updated_at = NOW() 
-       WHERE public_id = ?`,
-      [livreurIdNum, this.public_id]
-    );
-    if (result.affectedRows === 0) throw new Error("Échec de l'assignation");
-    this.livreur_id = livreurIdNum;
-    this.statut_livraison = 'En cours';
-    return this;
-  }
-  async assignerLivreur(livreurPublicId) {
-    // Récupérer l'ID numérique du livreur
-    const [rows] = await db.execute(
-      'SELECT id FROM users WHERE public_id = ?',
-      [livreurPublicId]
-    );
-    if (rows.length === 0) throw new Error('Livreur introuvable');
-    const livreurIdNum = rows[0].id;
-  
-    const [result] = await db.execute(
-      `UPDATE commandes 
-       SET livreur_id = ?, statut_livraison = 'En cours', updated_at = NOW() 
-       WHERE public_id = ?`,
-      [livreurIdNum, this.public_id]
-    );
-    if (result.affectedRows === 0) throw new Error("Échec de l'assignation");
-    this.livreur_id = livreurIdNum;
-    this.statut_livraison = 'En cours';
-    return this;
-  }
   // Mettre à jour le statut de livraison
   async updateStatutLivraison(nouveauStatut) {
     const statutsValides = [
@@ -339,7 +297,9 @@ export default class Commande {
     );
     return result.affectedRows > 0;
   }
-
+  async annuler() {
+    return this.updateStatut('Annulée');
+  }
   static async getStats() {
     const [rows] = await db.execute(`
       SELECT 
@@ -567,18 +527,145 @@ static async getStatsForUser(userPublicId) {
   return rows[0] || { total_commandes: 0, livrees: 0, payees: 0, annulees: 0, total_depense: 0 };
 }
 
-/**
- * Vérifie si la commande peut être annulée (uniquement si payée)
- * @returns {boolean}
- */
 peutEtreAnnulee() {
-  // Seulement autorisé si le statut est 'Payée'
-  return this.statut === 'Payée';
+  console.log('📌 Valeur de this.statut dans la méthode :', JSON.stringify(this.statut));
+  return ['En attente'].includes(this.statut);
 }
 
 
-  toJSON() {
-    return {
+async save() {
+  // Cas de mise à jour
+  if (this.id) {
+    // Construire dynamiquement la requête UPDATE
+    const fields = [];
+    const values = [];
+
+    // Champs modifiables
+    const updatableFields = [
+      'statut',
+      'mode_paiement',
+      'adresse_collecte',
+      'adresse_livraison',
+      'note_client',
+      'date_collecte',
+      'date_livraison',
+      'montant_total',
+      'livreur_id',
+      'statut_livraison'
+    ];
+
+    for (const field of updatableFields) {
+      if (this[field] !== undefined) {
+        fields.push(`${field} = ?`);
+        values.push(this[field]);
+      }
+    }
+
+    if (fields.length === 0) {
+      throw new Error('Aucun champ à mettre à jour');
+    }
+
+    values.push(this.id); // pour le WHERE
+    const sql = `UPDATE commandes SET ${fields.join(', ')}, updated_at = NOW() WHERE id = ?`;
+
+    const [result] = await db.execute(sql, values);
+    if (result.affectedRows === 0) {
+      throw new Error('Commande introuvable');
+    }
+
+    // Recharger les données mises à jour
+    const [rows] = await db.execute('SELECT * FROM commandes WHERE id = ?', [this.id]);
+    if (rows.length === 0) throw new Error('Commande introuvable après mise à jour');
+    Object.assign(this, rows[0]); // met à jour toutes les propriétés
+
+    return this;
+  }
+
+  // Cas d'insertion (nouvelle commande)
+  // On utilise la méthode Commander() existante
+  await this.Commander();
+  return this;
+}
+
+// models/commande.js
+static async findByIdWithDetails(publicId) {
+  // 1. Récupérer la commande avec le client
+  const [rows] = await db.execute(`
+    SELECT c.*, 
+           CONCAT(u.prenom, ' ', u.nom) AS client,
+           u.telephone,
+           u.email
+    FROM commandes c
+    JOIN users u ON c.user_id = u.id
+    WHERE c.public_id = ?
+  `, [publicId]);
+
+  if (rows.length === 0) return null;
+
+  const commande = new Commande(rows[0]);
+
+  // 2. Récupérer les services (via details_commandes)
+  const [details] = await db.execute(`
+    SELECT d.*, 
+           s.nom AS service_nom,
+           s.description,
+           s.public_id AS service_public_id
+    FROM details_commandes d
+    JOIN services s ON d.service_id = s.id
+    WHERE d.commande_id = ?
+  `, [commande.id]);
+
+  commande.services = details;
+
+  // 3. Récupérer le paiement associé (le plus récent)
+  const [paiement] = await db.execute(`
+    SELECT mode_paiement, statut_paiement, transaction_id
+    FROM paiements
+    WHERE commande_id = ?
+    ORDER BY created_at DESC LIMIT 1
+  `, [commande.id]);
+
+  if (paiement.length > 0) {
+    commande.mode_paiement = paiement[0].mode_paiement;
+    commande.paiement_statut = paiement[0].statut_paiement;
+    commande.transaction_id = paiement[0].transaction_id;
+  } else {
+    commande.mode_paiement = null;
+    commande.paiement_statut = 'En attente';
+    commande.transaction_id = null;
+  }
+
+  return commande;
+}
+
+
+
+async assignerLivreur(livreurPublicId) {
+  if (!livreurPublicId) throw new Error('public_id du livreur requis');
+  
+  const [rows] = await db.execute('SELECT id FROM users WHERE public_id = ?', [livreurPublicId]);
+  if (rows.length === 0) throw new Error('Livreur introuvable');
+  
+  const livreurIdNum = rows[0].id;
+  if (livreurIdNum === null || livreurIdNum === undefined) {
+    throw new Error('ID numérique du livreur invalide');
+  }
+
+  const [result] = await db.execute(
+    `UPDATE commandes 
+     SET livreur_id = ?, statut_livraison = 'En cours', updated_at = NOW() 
+     WHERE public_id = ?`,
+    [livreurIdNum, this.public_id]
+  );
+  if (result.affectedRows === 0) throw new Error("Échec de l'assignation");
+  this.livreur_id = livreurIdNum;
+  this.statut_livraison = 'En cours';
+  return this;
+}
+
+
+toJSON() {
+  return {
       public_id: this.public_id,
       reference: this.reference,
       montant_total: this.montant_total,
@@ -592,6 +679,14 @@ peutEtreAnnulee() {
       created_at: this.created_at,
       updated_at: this.updated_at,
       livreur_id: this.livreur_id,
-    };
-  }
+      // ✅ Ajout des champs pour le frontend
+      client: this.client,
+      phone: this.phone,
+      email: this.email,
+      services: this.services,
+      paiement_statut: this.paiement_statut,
+      transaction_id: this.transaction_id,
+      // Ajoutez d'autres si nécessaire
+  };
+}
 }

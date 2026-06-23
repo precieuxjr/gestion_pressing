@@ -1,6 +1,7 @@
+// src/components/NavBarHorizontal.jsx
 import { useState } from 'react';
 import { Search, Plus } from 'lucide-react';
-import NotificationIcon from '../components/notifiocations';
+import NavbarNotification from './NavbarNotification';
 
 export default function NavBarHorizontal({ 
   buttonLabel = "Nouveau client", 
@@ -17,6 +18,7 @@ export default function NavBarHorizontal({
 
   return (
     <header className="bg-white w-full h-14 flex items-center justify-between px-4 gap-3 sticky top-0 z-10 shadow-sm">
+      {/* Barre de recherche */}
       <div className="flex items-center gap-2 rounded-lg border border-gray-300 w-80 md:w-96 h-10 px-3">
         <Search className="text-gray-400 w-4 h-4" />
         <input
@@ -27,8 +29,10 @@ export default function NavBarHorizontal({
           placeholder="Rechercher..."
         />
       </div>
+
+      {/* Actions + notifications */}
       <div className="flex items-center gap-3">
-        <NotificationIcon />
+      
         <button
           onClick={onButtonClick}
           className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-4 py-2 rounded-lg transition flex items-center gap-1"
