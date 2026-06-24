@@ -38,7 +38,7 @@ export default function NavbarNotification() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 max-h-[400px] bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
+        <div className="absolute left-5 top-1 mt-2 w-70 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
           <div className="flex items-center justify-between p-3 border-b border-gray-200 bg-gray-50">
             <h4 className="font-semibold text-gray-800 text-sm">Notifications</h4>
             {notifications.length > 0 && (

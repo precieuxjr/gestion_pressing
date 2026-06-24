@@ -40,7 +40,7 @@ export default function AdminLoginPage() {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       
-      navigate('/admin/dashboard');
+      navigate('admin/dashboard');
 
     } catch (error) {
       setMessage(error.message);

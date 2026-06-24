@@ -33,7 +33,7 @@ export default function NavLivreur() {
   };
 
   return (
-    <nav className="w-170 h-screen bg-white border-r border-gray-200 fixed left-0 top-0 flex flex-col shadow-sm">
+    <nav className="fixed top-0 left-0 flex flex-col min-h-screen bg-gray-50 border-r border-gray-300 items-center w-75">
       {/* Logo / Brand */}
       <div className="p-6 border-b border-gray-100">
       <div className="flex flex-row items-center gap-3 w-full">

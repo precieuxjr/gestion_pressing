@@ -152,7 +152,7 @@ export default function Dashboard() {
           transition={{ duration: 0.4 }}
           className="top-1 flex flex-row justify-between items-center mx-8"
         >
-        <NavBarHorizontal/>
+        
         </motion.header>
 
         {/* Welcome block */}

@@ -383,13 +383,16 @@ export default function Commandes() {
         : order.status === 'Prêt'
         ? 'bg-purple-100 text-purple-800 hover:bg-purple-200'
         : order.status === 'Livrée'
-        ? 'bg-green-200 text-green-800 opacity-75 cursor-not-allowed'  // style différent
-        : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+        ? 'bg-green-200 text-green-800 opacity-75 cursor-not-allowed' 
+      : order.status === 'En attente'
+        ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+        :'bg-gray-100 text-yellow-800 hover:bg-yellow-200'
       }
     `}
   >
-    <option value="Payée">Payée</option>
+   
     <option value="Annulée">Annulée</option>
+    <option value="Payée">Payée</option>
     <option value="Retirer">Retirer</option>
     <option value="Prêt">Prêt</option>
     

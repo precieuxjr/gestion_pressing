@@ -16,7 +16,8 @@ import { getMesPaiements, getMonPaiement } from '../../controllers/client/paieme
 const router = express.Router();
 
 // Toutes les routes nécessitent authentification
-router.use(verifyToken,clientMiddleware);
+router.use(verifyToken);       // 1. décode le token
+router.use(clientMiddleware);  // 2. vérifie le rôle
 
 router.get('/paiements', getMesPaiements);
 router.get('/paiements/:publicId', getMonPaiement);

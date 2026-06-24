@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { login } from '../../services/authService';
 import { Mail, Lock, AlertCircle, Loader2, Shirt } from 'lucide-react';
@@ -8,29 +8,48 @@ export default function Login() {
   const [searchParams] = useSearchParams();
   const showCreate = searchParams.get('create') === 'true';
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  // Récupérer les valeurs sauvegardées dans sessionStorage (ou localStorage)
+  const savedEmail = sessionStorage.getItem('login_email') || '';
+  const savedPassword = sessionStorage.getItem('login_password') || '';
+
+  const [email, setEmail] = useState(savedEmail);
+  const [password, setPassword] = useState(savedPassword);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Sauvegarder les valeurs à chaque changement dans sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem('login_email', email);
+  }, [email]);
+
+  useEffect(() => {
+    sessionStorage.setItem('login_password', password);
+  }, [password]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
+  
     try {
       const data = await login(email, password);
-
-      // Stocker les données
+  
+      // ✅ Stockage avec la clé 'token' (uniforme)
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-
-      // Rediriger selon le rôle
+  
+      // Effacer les données de session
+      sessionStorage.removeItem('login_email');
+      sessionStorage.removeItem('login_password');
+  
+      // Redirection selon le rôle
       const role = data.user.role;
-      if (role === 'admin') navigate('/admin/dashboard');
-      else if (role === 'livreur') navigate('/livreur/dashboard');
-      else if (role === 'client') navigate('/client/dashboard');
-      else navigate('/');
+      if (role === 'client') {
+        navigate('/client/dashboard');
+      } else {
+        // Redirection générique (à adapter selon vos besoins)
+        navigate('/');
+      }
     } catch (err) {
       setError(err.message || 'Une erreur est survenue lors de la connexion.');
     } finally {
@@ -55,7 +74,7 @@ export default function Login() {
           </p>
         </div>
 
-        {/* ALERTE D'ERREUR HAUTE FIDÉLITÉ */}
+        {/* ALERTE D'ERREUR */}
         {error && (
           <div className="flex items-start gap-3 bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-sm p-4 rounded-xl mb-6 animate-fadeIn">
             <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
@@ -113,7 +132,7 @@ export default function Login() {
             </div>
           </div>
 
-          {/* BOUTON SOUMISSION ACTIONS */}
+          {/* BOUTON SOUMISSION */}
           <button
             type="submit"
             disabled={loading}

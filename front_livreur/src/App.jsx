@@ -9,13 +9,16 @@ import LivreurDashboard from './pages/dashboard';
 import LivreurCommandes from './pages/commandes';
 import LivreurLivraisons from './pages/livraisons';
 import LivreurParametres from './pages/parametres';
+import { ErrorBoundary } from 'react-error-boundary';
+import ErrorFallback from './components/ErrorFallback';
 
-// ✅ Notifications
+// Notifications
 import { NotificationProvider } from './context/NotificationContext';
 import { useWebSocketNotifications } from './hooks/useWebSocketNotifications';
 
 // Layout Livreur
 const DeliveryLayout = () => {
+  console.log('🏗️ DeliveryLayout rendu');
   return (
     <div className="flex relative">
       <NavLivreur />
@@ -26,22 +29,41 @@ const DeliveryLayout = () => {
   );
 };
 
-// ✅ Composant interne pour activer l'écoute des notifications
+// Composant interne pour activer l'écoute des notifications
 function AppContent() {
-  useWebSocketNotifications(); // écoute les événements WebSocket
+  console.log('🔄 AppContent (livreur) monté');
+  useWebSocketNotifications();
+
   return (
-    <Routes>
-      <Route path="/" element={<Navigate to="/livreur/login" replace />} />
-      <Route path="/livreur/login" element={<Livreur_Login />} />
-      <Route path="/livreur" element={<DeliveryLayout />}>
-        <Route path="dashboard" element={<LivreurDashboard />} />
-        <Route path="commandes" element={<LivreurCommandes />} />
-        <Route path="livraisons" element={<LivreurLivraisons />} />
-        <Route path="parametres" element={<LivreurParametres />} />
-        <Route index element={<Navigate to="/livreur/dashboard" replace />} />
-      </Route>
-      <Route path="*" element={<h1 className="p-8 text-center text-gray-500">Page non trouvée</h1>} />
-    </Routes>
+    <ErrorBoundary
+      FallbackComponent={ErrorFallback}
+      onReset={() => {
+        console.log('Reset de l’erreur');
+      }}
+    >
+      <Routes>
+        {/* Redirection racine */}
+        <Route path="/" element={<Navigate to="/livreur/login" replace />} />
+
+        {/* Login public */}
+        <Route path="/livreur/login" element={<Livreur_Login/>} />
+
+        {/* Routes protégées (layout avec navbar) */}
+        <Route path="/livreur" element={<DeliveryLayout />}>
+          <Route path="dashboard" element={<LivreurDashboard />} />
+          <Route path="commandes" element={<LivreurCommandes />} />
+          <Route path="livraisons" element={<LivreurLivraisons />} />
+          <Route path="parametres" element={<LivreurParametres />} />
+          <Route index element={<Navigate to="/livreur/dashboard" replace />} />
+        </Route>
+
+        {/* Route de test (optionnelle) */}
+        <Route path="/livreur/dashboard-test" element={<div>Test Dashboard</div>} />
+
+        {/* 404 */}
+        <Route path="*" element={<h1 className="p-8 text-center text-gray-500">Page non trouvée</h1>} />
+      </Routes>
+    </ErrorBoundary>
   );
 }
 

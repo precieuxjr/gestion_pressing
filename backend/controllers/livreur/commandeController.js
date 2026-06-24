@@ -67,9 +67,13 @@ export async function updateStatutLivraison(req, res) {
   try {
     const { publicId } = req.params;
     const { statut_livraison } = req.body;
+    console.log('📥 updateStatutLivraison appelé avec publicId:', req.params.publicId);
 
     if (!statut_livraison) {
       return res.status(400).json({ error: 'statut_livraison requis' });
+    }
+    if (!publicId) {
+      return res.status(400).json({ error: 'Identifiant de commande manquant' });
     }
 
     const commande = await Commande.findByPublicId(publicId);
@@ -79,6 +83,7 @@ export async function updateStatutLivraison(req, res) {
 
     await commande.updateStatutLivraison(statut_livraison);
 
+    // Libération du livreur si la livraison est terminée
     if (statut_livraison === 'Livrée' || statut_livraison === 'Annulée') {
       if (commande.livreur_id) {
         const livreur = await User.findById(commande.livreur_id);
@@ -98,6 +103,7 @@ export async function updateStatutLivraison(req, res) {
 
     const updated = await Commande.findByIdWithLivraison(publicId);
 
+    // ✅ Émission WebSocket
     const io = req.app.get('io');
     if (io) {
       let livreurPublicId = null;
@@ -116,12 +122,17 @@ export async function updateStatutLivraison(req, res) {
         updatedAt: new Date()
       };
 
+      // Notifier le livreur
       if (livreurPublicId) {
         io.to(`user_${livreurPublicId}`).emit('commande_updated', payload);
       }
+      // Notifier le client
       if (clientPublicId) {
         io.to(`user_${clientPublicId}`).emit('commande_updated', payload);
       }
+      // ✅ Notifier l'administrateur
+      io.to('admins').emit('commande_updated', payload);
+      console.log(`📤 Notification envoyée à l'admin pour la commande ${publicId}`);
     }
 
     res.json(updated);
@@ -129,7 +140,7 @@ export async function updateStatutLivraison(req, res) {
     console.error('❌ Erreur updateStatutLivraison:', error);
     res.status(500).json({ error: error.message });
   }
-}   // ✅ accolade fermante ajoutée ici
+}// ✅ accolade fermante ajoutée ici
 
 // ========================================
 // 5. Récupérer les statistiques du livreur

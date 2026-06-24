@@ -60,7 +60,12 @@ export   async function login(req, res) {
         if (user.statut !== 'actif') {
             return res.status(403).json({ error: 'Compte désactivé. Contactez l\'administrateur.' });
         }
-
+    // Vérification du rôle
+      if (user.role !== 'client') {
+    return res.status(403).json({ 
+      error: 'Cet espace est réservé aux clients. Veuillez utiliser l\'espace livreur.' 
+    });
+  }
         // 4. Vérifier le mot de passe (il faut avoir le hash en mémoire)
         //    La méthode findByEmail doit sélectionner la colonne mot_de_passe.
         //    Si ce n'est pas le cas, il faudra faire une requête supplémentaire.

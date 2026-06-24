@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 
-export default function StepButton({ 
+export default function StepButton({
   action,
   label = "Passer à l'étape suivante",
   className = "",
@@ -12,12 +12,30 @@ export default function StepButton({
   const handleClick = () => {
     if (disabled) return;
 
+    // Vérifier la présence du token et des infos utilisateur
     const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
+    const userData = localStorage.getItem('user');
 
-    if (token && user) {
-      action();
-    } else {
+    // Si pas de token ou pas d'utilisateur → redirection vers login
+    if (!token || !userData) {
+      navigate('/login?create=true');
+      return;
+    }
+
+    try {
+      const user = JSON.parse(userData);
+      // Vérifier que l'utilisateur est bien un client
+      if (user.role !== 'client') {
+        // Si ce n'est pas un client, on le redirige vers login
+        navigate('/login?create=true');
+        return;
+      }
+
+      // Tout est bon → aller au récapitulatif
+      navigate('/client/commandes/nouvelle');
+    } catch (error) {
+      // En cas d'erreur de parsing, rediriger vers login
+      console.error('Erreur lors du parsing user :', error);
       navigate('/login?create=true');
     }
   };

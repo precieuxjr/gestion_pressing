@@ -14,6 +14,7 @@ import livraisonRoutes from './routes/admin/livraisonRoutes.js';
 import livreurRoutes from './routes/livreur/commandesRoutes.js';
 import authRoutes from './routes/client/authRoutes.js';
 import clientRoute from './routes/client/clientRoutes.js';
+import livreurAuthRoutes from './routes/livreur/auth/authRoutes.js';
 
 dotenv.config();
 
@@ -109,6 +110,7 @@ io.on('connection', (socket) => {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/client', clientRoute);
+app.use('/api/livreur', livreurAuthRoutes);
 app.use('/api/livreur', livreurRoutes);
 app.use('/api/admin/commandes', adminCommandeRoutes);
 app.use('/api/admin/clients', clientRoutes);
