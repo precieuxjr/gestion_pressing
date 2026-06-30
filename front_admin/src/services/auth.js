@@ -2,13 +2,16 @@ import { apiFetch } from './api';
 
 export const authService = {
   login: (email, password) =>
-    apiFetch('/auth/login', {
+    apiFetch('/admin/authentification', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
   logout: () => {
     localStorage.removeItem('token');
-    // redirection éventuelle
+    localStorage.removeItem('user');
   },
-  getCurrentUser: () => apiFetch('/auth/me'),
+  getCurrentUser: () => {
+    const user = localStorage.getItem('user');
+    return user ? JSON.parse(user) : null;
+  },
 };

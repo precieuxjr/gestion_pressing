@@ -222,10 +222,10 @@ export default function Services() {
                       variants={tableRowVariants}
                       className="hover:bg-gray-50 transition-colors duration-150"
                     >
-                      <td className="px-6 py-4 whitespace-nowrap">{service.nom}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{parseInt(service.prix).toLocaleString()}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{service.description || '—'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{service.nom}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{parseInt(service.prix).toLocaleString()}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{service.description || '—'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
@@ -260,87 +260,127 @@ export default function Services() {
       </div>
 
       <AnimatePresence>
-        {showForm && (
-          <motion.div
-            key="modal"
-            variants={modalVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      {showForm && (
+  <motion.div
+    key="modal"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    transition={{ duration: 0.2 }}
+    className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+    onClick={(e) => {
+      if (e.target === e.currentTarget) setShowForm(false);
+    }}
+  >
+    <motion.div
+      initial={{ scale: 0.9, y: 20, opacity: 0 }}
+      animate={{ scale: 1, y: 0, opacity: 1 }}
+      exit={{ scale: 0.9, y: 20, opacity: 0 }}
+      transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+      className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
+    >
+      {/* En-tête avec dégradé */}
+      <div className="bg-linear-to-br from-blue-500 to-sky-400 px-6 py-5 text-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold">
+              {editingService ? 'Modifier le service' : 'Nouveau service'}
+            </h2>
+            <p className="text-blue-100 text-sm mt-0.5">
+              {editingService ? 'Mettez à jour les informations' : 'Ajoutez un nouveau service à votre catalogue'}
+            </p>
+          </div>
+          <motion.button
+            whileHover={{ rotate: 90, scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setShowForm(false)}
+            className="text-white/80 hover:text-white transition-colors"
           >
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-              <div className="flex justify-between items-center p-4 border-b">
-                <h2 className="text-lg font-bold">
-                  {editingService ? 'Modifier le service' : 'Nouveau service'}
-                </h2>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowForm(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <X className="w-5 h-5" />
-                </motion.button>
-              </div>
-              <form onSubmit={handleSubmit} className="p-4 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
-                  <input
-                    type="text"
-                    name="nom"
-                    required
-                    value={formData.nom}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Prix (FCFA) *</label>
-                  <input
-                    type="number"
-                    name="prix"
-                    required
-                    min="0"
-                    step="100"
-                    value={formData.prix}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <textarea
-                    name="description"
-                    rows="3"
-                    value={formData.description}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowForm(false)}
-                    className="px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50"
-                  >
-                    Annuler
-                  </button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    type="submit"
-                    disabled={formLoading}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
-                  >
-                    {formLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {editingService ? 'Mettre à jour' : 'Créer'}
-                  </motion.button>
-                </div>
-              </form>
-            </div>
-          </motion.div>
-        )}
+            <X className="w-6 h-6" />
+          </motion.button>
+        </div>
+      </div>
+
+      {/* Contenu du formulaire */}
+      <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        {/* Champ Nom */}
+        <div>
+          <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">8
+            Nom du service *
+          </label>
+          <input
+            type="text"
+            name="nom"
+            required
+            value={formData.nom}
+            onChange={handleChange}
+            placeholder="Ex: Nettoyage à sec"
+            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-gray-50/50 hover:bg-white focus:bg-white text-gray-800 placeholder:text-gray-400"
+          />
+        </div>
+
+        {/* Champ Prix */}
+        <div>
+          <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
+
+            Prix (FCFA) *
+          </label>
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-semibold">FC</span>
+            <input
+              type="number"
+              name="prix"
+              required
+              min="0"
+              step="100"
+              value={formData.prix}
+              onChange={handleChange}
+              placeholder="5 000"
+              className="w-full pl-12 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-gray-50/50 hover:bg-white focus:bg-white text-gray-800 placeholder:text-gray-400"
+            />
+          </div>
+        </div>
+
+        {/* Champ Description */}
+        <div>
+          <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
+       
+            Description
+          </label>
+          <textarea
+            name="description"
+            rows="3"
+            value={formData.description}
+            onChange={handleChange}
+            placeholder="Décrivez le service en quelques mots..."
+            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-gray-50/50 hover:bg-white focus:bg-white text-gray-800 placeholder:text-gray-400 resize-none"
+          />
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3 pt-3 border-t border-gray-100">
+          <button
+            type="button"
+            onClick={() => setShowForm(false)}
+            className="flex-1 px-4 py-2.5 border border-gray-200  rounded-xl text-gray-600 font-medium hover:bg-red-300 transition-colors"
+          >
+            Annuler
+          </button>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            type="submit"
+            disabled={formLoading}
+            className="flex-1 px-4 py-2.5 bg-linear-to-br from-blue-500 to-sky-400 text-white font-medium rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {formLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+            {editingService ? 'Mettre à jour' : 'Créer le service'}
+          </motion.button>
+        </div>
+      </form>
+    </motion.div>
+  </motion.div>
+)}
       </AnimatePresence>
 
       <AnimatePresence>

@@ -17,7 +17,7 @@ export default function NavBarHorizontal({
   };
 
   return (
-    <header className="bg-white w-full h-14 flex items-center justify-between px-4 gap-3 sticky top-0 z-10 shadow-sm">
+    <header className="bg-white w-full h-14 flex items-center justify-between px-4 ml-3 gap-3 sticky top-0  shadow-sm">
       {/* Barre de recherche */}
       <div className="flex items-center gap-2 rounded-lg border border-gray-300 w-80 md:w-96 h-10 px-3">
         <Search className="text-gray-400 w-4 h-4" />
@@ -31,7 +31,7 @@ export default function NavBarHorizontal({
       </div>
 
       {/* Actions + notifications */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 mr-3">
       
         <button
           onClick={onButtonClick}

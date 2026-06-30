@@ -211,7 +211,7 @@ export default function Commandes() {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="grid grid-cols-4 gap-4 justify-items-center my-3.5 bg-white py-6"
+        className="grid grid-cols-4 gap-4 justify-items-center mx-3 my-3.5 bg-white py-6"
       >
         {stats.map((item) => (
           <motion.div

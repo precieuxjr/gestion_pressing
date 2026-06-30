@@ -1,12 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Edit2, Trash2, MoreHorizontal } from 'lucide-react';
-import NotificationIcon from '../components/notifiocations';
+import { 
+  X, Edit2, Trash2, MoreHorizontal, User, Mail, Phone, MapPin, 
+  Loader2, CheckCircle2, Trash, Eye, EyeOff, Lock,
+  UserRound, UserRoundCog 
+} from 'lucide-react';
 import { clientsService } from '../services/sevice_client';
-import { UserRound, UserRoundCog } from 'lucide-react';
 import NavBarHorizontal from '../components/navbar_horizontal';
 
 export default function Clients() {
+  // États
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -22,11 +25,21 @@ export default function Clients() {
     telephone: '',
     adresse: '',
     role: 'client',
+    password: ''
   });
   const [formLoading, setFormLoading] = useState(false);
+  const [activeMenu, setActiveMenu] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [notification, setNotification] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
+  // Notification toast
+  const triggerNotification = (message, type) => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
+  };
 
+  // Récupérer les clients
   const fetchClients = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -42,10 +55,9 @@ export default function Clients() {
 
   useEffect(() => {
     fetchClients();
-    // ✅ Plus d'écoute WebSocket
   }, [fetchClients]);
 
-
+  // Gestion du formulaire
   const handleOpenForm = (client = null) => {
     if (client) {
       setEditingClient(client);
@@ -57,6 +69,7 @@ export default function Clients() {
         telephone: client.telephone || '',
         adresse: client.adresse || '',
         role: client.role || 'client',
+        password: '' // Ne pas pré-remplir le mot de passe
       });
     } else {
       setEditingClient(null);
@@ -68,6 +81,7 @@ export default function Clients() {
         telephone: '',
         adresse: '',
         role: 'client',
+        password: ''
       });
     }
     setShowForm(true);
@@ -87,9 +101,14 @@ export default function Clients() {
     setFormLoading(true);
     try {
       if (editingClient) {
-        await clientsService.update(editingClient.id, formData);
+        // Mise à jour : on n'envoie PAS le mot de passe
+        const { password, ...updateData } = formData;
+        await clientsService.update(editingClient.public_id, updateData); // ← public_id
+        triggerNotification('Client mis à jour avec succès', 'success');
       } else {
+        // Création : on envoie tout, y compris le mot de passe
         await clientsService.create(formData);
+        triggerNotification('Client ajouté avec succès', 'success');
       }
       await fetchClients();
       handleCloseForm();
@@ -100,6 +119,7 @@ export default function Clients() {
     }
   };
 
+  // Filtrage
   useEffect(() => {
     if (!searchTerm.trim()) {
       setFilteredClients(clients);
@@ -113,15 +133,15 @@ export default function Clients() {
     }
   }, [searchTerm, clients]);
 
-  const handleSearch = (term) => {
-    setSearchTerm(term);
-  };
+  const handleSearch = (term) => setSearchTerm(term);
 
-  const handleDelete = async (id) => {
+  // Suppression (avec public_id)
+  const handleDelete = async (publicId) => {
     try {
-      await clientsService.delete(id);
+      await clientsService.delete(publicId);
       await fetchClients();
       setDeleteConfirm(null);
+      triggerNotification('Client supprimé avec succès', 'delete');
     } catch (err) {
       alert(err.message);
     }
@@ -133,24 +153,18 @@ export default function Clients() {
     return first + last;
   };
 
+  // Variants d'animation
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2,
-      },
+      transition: { staggerChildren: 0.1, delayChildren: 0.2 },
     },
   };
 
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: { type: 'spring', stiffness: 100, damping: 12 },
-    },
+    visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 100, damping: 12 } },
   };
 
   const tableRowVariants = {
@@ -159,15 +173,34 @@ export default function Clients() {
   };
 
   const modalVariants = {
-    hidden: { scale: 0.9, opacity: 0 },
-    visible: { scale: 1, opacity: 1, transition: { type: 'spring', damping: 25, stiffness: 300 } },
-    exit: { scale: 0.9, opacity: 0, transition: { duration: 0.2 } },
+    hidden: { opacity: 0, scale: 0.9, y: 20 },
+    visible: { opacity: 1, scale: 1, y: 0, transition: { type: 'spring', damping: 25, stiffness: 300 } },
+    exit: { opacity: 0, scale: 0.9, y: 20, transition: { duration: 0.2 } },
   };
 
+  // Statistiques
   const stats = [
-    { id: 1, nom: 'Nombre de client', icon: UserRound, result: clients.length, style: "relative w-65 overflow-hidden rounded-xl bg-linear-to-br from-white to-blue-50 p-4 shadow-sm border border-blue-100" },
-    { id: 2, nom: 'Compte client actif ', icon: UserRoundCog, result: clients.filter(client => client.statut == 'actif').length, style: "relative w-65 overflow-hidden rounded-xl bg-green-200 p-4" },
-    { id: 3, nom: 'Compte client suspendu', icon: UserRoundCog, result: clients.filter(client => client.statut == 'suspendu').length, style: "relative w-65 overflow-hidden rounded-xl bg-red-200 p-4 shadow-sm border border-red-100" },
+    {
+      id: 1,
+      nom: 'Nombre de clients',
+      icon: UserRound,
+      result: clients.length,
+      style: "relative w-65 overflow-hidden rounded-xl bg-gradient-to-br from-white to-blue-50 p-4 shadow-sm border border-blue-100",
+    },
+    {
+      id: 2,
+      nom: 'Comptes actifs',
+      icon: UserRoundCog,
+      result: clients.filter(c => c.statut === 'actif').length,
+      style: "relative w-65 overflow-hidden rounded-xl bg-green-200 p-4 shadow-sm border border-blue-100",
+    },
+    {
+      id: 3,
+      nom: 'Comptes suspendus',
+      icon: UserRoundCog,
+      result: clients.filter(c => c.statut === 'suspendu').length,
+      style: "relative w-65 overflow-hidden rounded-xl bg-red-200 p-4 shadow-sm border border-red-100",
+    },
   ];
 
   return (
@@ -175,11 +208,11 @@ export default function Clients() {
       initial="hidden"
       animate="visible"
       variants={containerVariants}
-      className="flex flex-col bg-gray-50 min-h-screen w-250"
+      className="flex flex-col bg-gray-50 min-h-screen w-full"
     >
       <NavBarHorizontal
         buttonLabel="Nouveau client"
-        onButtonClick={() => console.log('Ajouter client')}
+        onButtonClick={() => handleOpenForm()}
         onSearch={handleSearch}
       />
 
@@ -187,7 +220,7 @@ export default function Clients() {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="grid grid-cols-3 gap-4 justify-items-center my-3.5 bg-white py-6"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 justify-items-center my-3.5 bg-white py-6 px-4"
       >
         {stats.map((item) => (
           <motion.div
@@ -240,6 +273,7 @@ export default function Clients() {
                       variants={tableRowVariants}
                       className="hover:bg-gray-50 transition-colors duration-150"
                     >
+                      {/* Colonnes... (inchangées) */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="shrink-0 h-9 w-9 rounded-full bg-teal-50 flex items-center justify-center text-teal-700 font-medium text-sm">
@@ -251,26 +285,27 @@ export default function Clients() {
                             </div>
                           </div>
                         </div>
-                       </td>
+                      </td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-600 font-mono">{client.telephone || '—'}</div>
-                       </td>
+                      </td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-700">{client.email || '—'}</div>
-                       </td>
+                      </td>
                       <td className="px-4 py-4">
                         <div className="flex flex-col space-y-1.5">
                           <span className="text-sm text-gray-700 truncate max-w-xs">{client.adresse || '—'}</span>
                           <div className="flex items-center">
                             <span className="inline-flex items-center gap-1.5 text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
-                              <span className="text-green-600 text-sm">✓</span>
-                              <span className="font-medium">{client.statut === 'actif' ? 'Actif' : 'suspendu'}</span>
+                              <span className={`w-2 h-2 rounded-full ${client.statut === 'actif' ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                              <span className="font-medium">{client.statut === 'actif' ? 'Actif' : 'Suspendu'}</span>
                             </span>
                           </div>
                         </div>
-                       </td>
+                      </td>
                       <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2 relative">
+                          {/* Modifier */}
                           <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
@@ -280,24 +315,21 @@ export default function Clients() {
                           >
                             <Edit2 className="w-4 h-4" />
                           </motion.button>
+
+                          {/* Supprimer */}
                           <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            onClick={() => setDeleteConfirm(client.id)}
+                            onClick={() => setDeleteConfirm(client.public_id)} 
                             className="text-gray-400 hover:text-red-600 transition-colors p-1 rounded-full hover:bg-gray-100"
                             title="Supprimer"
                           >
                             <Trash2 className="w-4 h-4" />
                           </motion.button>
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
-                          >
-                            <MoreHorizontal className="w-4 h-4" />
-                          </motion.button>
+
+                       
                         </div>
-                       </td>
+                      </td>
                     </motion.tr>
                   ))}
                   {filteredClients.length === 0 && (
@@ -312,70 +344,199 @@ export default function Clients() {
         </div>
       </div>
 
-      {/* Modal formulaire avec animation */}
+      {/* Modal formulaire – inchangé mais corrigé pour le scroll */}
       <AnimatePresence>
         {showForm && (
           <motion.div
             key="client-form-modal"
-            variants={modalVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowForm(false);
+            }}
           >
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-center p-4 border-b">
-                <h2 className="text-lg font-bold">{editingClient ? 'Modifier le client' : 'Nouveau client'}</h2>
-                <button onClick={handleCloseForm} className="text-gray-500 hover:text-gray-700">
-                  <X className="w-5 h-5" />
-                </button>
+            <motion.div
+              variants={modalVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
+            >
+              <div className="bg-gradient-to-br from-blue-500 to-sky-400 px-6 py-5 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold">
+                      {editingClient ? 'Modifier le client' : 'Nouveau client'}
+                    </h2>
+                    <p className="text-blue-100 text-sm mt-0.5">
+                      {editingClient ? 'Mettez à jour les informations' : 'Ajoutez un nouveau client à votre base'}
+                    </p>
+                  </div>
+                  <motion.button
+                    whileHover={{ rotate: 90, scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setShowForm(false)}
+                    className="text-white/80 hover:text-white transition-colors"
+                  >
+                    <X className="w-6 h-6" />
+                  </motion.button>
+                </div>
               </div>
-              <form onSubmit={handleSubmit} className="p-4 space-y-4">
-                {/* ... champs du formulaire inchangés ... */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
-                  <input type="text" name="nom" value={formData.nom} onChange={handleChange} required className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500" />
+
+              <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                {/* ... tous les champs ... (inchangés) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
+                      <User className="w-4 h-4 text-blue-500" />
+                      Nom *
+                    </label>
+                    <input
+                      type="text"
+                      name="nom"
+                      required
+                      value={formData.nom}
+                      onChange={handleChange}
+                      placeholder="Tshisekedi"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-gray-50/50 hover:bg-white focus:bg-white text-gray-800 placeholder:text-gray-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
+                      <User className="w-4 h-4 text-blue-500" />
+                      Prénom *
+                    </label>
+                    <input
+                      type="text"
+                      name="prenom"
+                      required
+                      value={formData.prenom}
+                      onChange={handleChange}
+                      placeholder="Felix"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-gray-50/50 hover:bg-white focus:bg-white text-gray-800 placeholder:text-gray-400"
+                    />
+                  </div>
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label>
-                  <input type="text" name="prenom" value={formData.prenom} onChange={handleChange} required className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500" />
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
+                    <User className="w-4 h-4 text-blue-500" />
+                    Postnom
+                  </label>
+                  <input
+                    type="text"
+                    name="postnom"
+                    value={formData.postnom}
+                    onChange={handleChange}
+                    placeholder="Lema"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-gray-50/50 hover:bg-white focus:bg-white text-gray-800 placeholder:text-gray-400"
+                  />
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Postnom</label>
-                  <input type="text" name="postnom" value={formData.postnom} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500" />
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
+                    <Mail className="w-4 h-4 text-blue-500" />
+                    Email *
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="tresor@email.com"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-gray-50/50 hover:bg-white focus:bg-white text-gray-800 placeholder:text-gray-400"
+                  />
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                  <input type="email" name="email" value={formData.email} onChange={handleChange} required className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500" />
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
+                    <Phone className="w-4 h-4 text-blue-500" />
+                    Téléphone *
+                  </label>
+                  <input
+                    type="tel"
+                    name="telephone"
+                    required
+                    value={formData.telephone}
+                    onChange={handleChange}
+                    placeholder="+243 812 345 678"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-gray-50/50 hover:bg-white focus:bg-white text-gray-800 placeholder:text-gray-400"
+                  />
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone *</label>
-                  <input type="tel" name="telephone" value={formData.telephone} onChange={handleChange} required className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500" />
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
+                    <MapPin className="w-4 h-4 text-blue-500" />
+                    Adresse
+                  </label>
+                  <textarea
+                    name="adresse"
+                    rows="2"
+                    value={formData.adresse}
+                    onChange={handleChange}
+                    placeholder="Rue, quartier, ville"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-gray-50/50 hover:bg-white focus:bg-white text-gray-800 placeholder:text-gray-400 resize-none"
+                  />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
-                  <textarea name="adresse" rows="2" value={formData.adresse} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Rôle</label>
-                  <select name="role" value={formData.role} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500">
-                    <option value="client">Client</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-                <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={handleCloseForm} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Annuler</button>
-                  <button type="submit" disabled={formLoading} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
-                    {formLoading ? 'Enregistrement...' : (editingClient ? 'Modifier' : 'Créer')}
+
+                {/* Champ mot de passe (uniquement en création) */}
+                {!editingClient && (
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
+                      <Lock className="w-4 h-4 text-blue-500" />
+                      Mot de passe *
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        name="password"
+                        required
+                        value={formData.password}
+                        onChange={handleChange}
+                        placeholder="••••••••"
+                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-gray-50/50 hover:bg-white focus:bg-white text-gray-800 placeholder:text-gray-400 pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-3 border-t border-gray-100">
+                  <button
+                    type="button"
+                    onClick={() => setShowForm(false)}
+                    className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-gray-600 font-medium hover:bg-gray-50 transition-colors"
+                  >
+                    Annuler
                   </button>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="submit"
+                    disabled={formLoading}
+                    className="flex-1 px-4 py-2.5 bg-gradient-to-br from-blue-500 to-sky-400 text-white font-medium rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {formLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {editingClient ? 'Mettre à jour' : 'Ajouter le client'}
+                  </motion.button>
                 </div>
               </form>
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Modal confirmation suppression avec animation */}
+      {/* Modal confirmation suppression */}
       <AnimatePresence>
         {deleteConfirm && (
           <motion.div
@@ -384,7 +545,7 @@ export default function Clients() {
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           >
             <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
               <h3 className="text-lg font-bold mb-4">Confirmer la suppression</h3>
@@ -393,6 +554,44 @@ export default function Clients() {
                 <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Annuler</button>
                 <button onClick={() => handleDelete(deleteConfirm)} className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Supprimer</button>
               </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Toast notification */}
+      <AnimatePresence>
+        {notification && (
+          <motion.div
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 50 }}
+            transition={{ duration: 0.3 }}
+            className="fixed bottom-5 right-5 z-50"
+          >
+            <div className={`flex items-center gap-3 p-4 rounded-xl shadow-lg border text-sm font-medium max-w-sm bg-white transition-all duration-300 ${
+              notification.type === 'success' 
+                ? 'border-l-4 border-l-green-500 text-gray-800' 
+                : 'border-l-4 border-l-red-500 text-gray-800'
+            }`}>
+              {notification.type === 'success' ? (
+                <div className="p-1.5 bg-green-50 text-green-600 rounded-full">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+              ) : (
+                <div className="p-1.5 bg-red-50 text-red-600 rounded-full">
+                  <Trash className="w-5 h-5" />
+                </div>
+              )}
+              <div>
+                <p className="font-bold text-gray-900">
+                  {notification.type === 'success' ? 'Succès !' : 'Supprimé !'}
+                </p>
+                <p className="text-xs text-gray-500">{notification.message}</p>
+              </div>
+              <button onClick={() => setNotification(null)} className="ml-auto text-gray-400 hover:text-gray-600">
+                <X className="w-4 h-4" />
+              </button>
             </div>
           </motion.div>
         )}

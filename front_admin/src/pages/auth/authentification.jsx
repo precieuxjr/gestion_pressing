@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
+import { authService } from '../../services/auth';
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
@@ -21,27 +22,20 @@ export default function AdminLoginPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      
-      const data = await response.json();
+      //  Appel au service d'authentification
+      const data = await authService.login(email, password);
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur de connexion');
-      }
-
+      //  Vérification du rôle
       if (data.user.role !== 'admin') {
         throw new Error("Accès refusé. Cet espace est réservé aux administrateurs.");
       }
 
+      //  Stockage du token et de l'utilisateur
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-      
-      navigate('admin/dashboard');
 
+      //  Redirection
+      navigate('/admin/dashboard');
     } catch (error) {
       setMessage(error.message);
     } finally {
@@ -49,11 +43,11 @@ export default function AdminLoginPage() {
     }
   };
 
+  // Le reste du JSX est inchangé
   return (
     <div className="min-h-screen w-full bg-[#f4f7fb] flex items-center justify-center p-4">
       <div className="w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden grid lg:grid-cols-2">
-        
-        {/* LEFT SIDE - compact */}
+        {/* LEFT SIDE - inchangé */}
         <div className="bg-linear-to-br from-blue-500 to-sky-400 p-8 text-white flex flex-col justify-between relative overflow-hidden">
           <div className="absolute top-0 right-0 w-56 h-56 bg-white/10 rounded-full blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-56 h-56 bg-black/10 rounded-full blur-3xl"></div>
@@ -94,7 +88,7 @@ export default function AdminLoginPage() {
           </div>
         </div>
 
-        {/* RIGHT SIDE - compact */}
+        {/* RIGHT SIDE - inchangé */}
         <div className="p-8 flex items-center justify-center bg-white">
           <div className="w-full max-w-md">
             <div className="mb-6">
@@ -104,7 +98,6 @@ export default function AdminLoginPage() {
             </div>
 
             <form onSubmit={handleLogin} className="space-y-4">
-              
               {message && (
                 <div className="p-3 rounded-xl bg-red-50 text-red-600 text-sm font-medium border border-red-100">
                   {message}
@@ -123,7 +116,7 @@ export default function AdminLoginPage() {
                 />
               </div>
 
-              <div className='relative'>
+              <div className="relative">
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-sm font-semibold text-gray-700">Mot de passe</label>
                   <button type="button" className="text-xs text-blue-500 hover:text-blue-600 font-medium">
@@ -158,8 +151,8 @@ export default function AdminLoginPage() {
                 type="submit"
                 disabled={loading}
                 className={`w-full h-12 rounded-xl text-white font-semibold text-base shadow-lg transition-all duration-300 ${
-                  loading 
-                    ? 'bg-blue-400 cursor-not-allowed shadow-none' 
+                  loading
+                    ? 'bg-blue-400 cursor-not-allowed shadow-none'
                     : 'bg-blue-500 hover:bg-blue-600 shadow-blue-200'
                 }`}
               >
@@ -173,7 +166,6 @@ export default function AdminLoginPage() {
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );

@@ -40,11 +40,11 @@ export default function Livraisons() {
   useEffect(() => {
     fetchCommandes();
     fetchLivreurs();
-    // ✅ Plus d'écoute WebSocket
+    // Plus d'écoute WebSocket
   }, [fetchCommandes, fetchLivreurs]);
 
 
-  // ✅ FILTRE : UNIQUEMENT les commandes avec le statut "Prêt"
+  //  FILTRE : UNIQUEMENT les commandes avec le statut "Prêt"
   const commandesEligibles = commandes.filter(cmd => cmd.status === 'Prêt');
 
   // Filtrer par recherche
@@ -224,7 +224,7 @@ export default function Livraisons() {
                             const estLivree = statut === 'livrée' || statut === 'livree';
 
                             if (estLivree) {
-                              return <span className="text-sm text-gray-500 font-medium">✅ Livrée</span>;
+                              return <span className="text-sm text-gray-500 font-medium"> Livrée</span>;
                             }
 
                             // Commande non livrée → afficher les contrôles
