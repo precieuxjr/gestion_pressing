@@ -24,7 +24,6 @@ import Paiement from './pages/paiement';
 import ErrorBoundary from './components/ErrorBoundary';
 import NouvelleCommande from './pages/NouvelleCommande';
 
-
 // ✅ Imports pour les notifications en temps réel
 import { NotificationProvider } from './context/NotificationContext';
 import { useWebSocketNotifications } from './hooks/useWebSocketNotifications';
@@ -48,22 +47,40 @@ function ProtectedRoute({ children, allowedRole = 'client' }) {
 function AccueilVitrine() {
   return (
     <>
-      <section id="accueil" className="min-h-screen flex items-center bg-white dark:bg-slate-900">
+      <section
+        id="accueil"
+        className="min-h-screen flex items-center bg-white dark:bg-slate-900"
+      >
         <Hero />
       </section>
-      <section id="expertise" className="min-h-screen py-16 sm:py-24 bg-slate-50 dark:bg-slate-950">
+      <section
+        id="expertise"
+        className="min-h-screen py-16 sm:py-24 bg-slate-50 dark:bg-slate-950"
+      >
         <Expertise />
       </section>
-      <section id="services" className="min-h-screen py-16 sm:py-24 bg-white dark:bg-slate-900">
+      <section
+        id="services"
+        className="min-h-screen py-16 sm:py-24 bg-white dark:bg-slate-900"
+      >
         <Services />
       </section>
-      <section id="galerie" className="min-h-screen py-16 sm:py-24 bg-slate-50 dark:bg-slate-950">
+      <section
+        id="galerie"
+        className="min-h-screen py-16 sm:py-24 bg-slate-50 dark:bg-slate-950"
+      >
         <Galerie />
       </section>
-      <section id="a-propos" className="min-h-screen py-16 sm:py-24 bg-white dark:bg-slate-900">
+      <section
+        id="a-propos"
+        className="min-h-screen py-16 sm:py-24 bg-white dark:bg-slate-900"
+      >
         <Apropos />
       </section>
-      <section id="contact" className="min-h-screen py-16 sm:py-24 bg-slate-50 dark:bg-slate-950">
+      <section
+        id="contact"
+        className="min-h-screen py-16 sm:py-24 bg-slate-50 dark:bg-slate-950"
+      >
         <Contact />
       </section>
     </>
@@ -86,7 +103,6 @@ function AppContent() {
         <Route path="/selection" element={<SelectionServices />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-
         {/* Routes protégées (client uniquement) */}
         <Route
           path="/client/recapitulatif"
@@ -113,7 +129,8 @@ function AppContent() {
               </ErrorBoundary>
             </ProtectedRoute>
           }
-        />
+        />{' '}
+        <Route path="/client/commandes/:id" element={<ClientDashboard />} />
         <Route
           path="/client/commandes/nouvelle"
           element={
@@ -124,7 +141,6 @@ function AppContent() {
             </ProtectedRoute>
           }
         />
-
         {/* Page 404 */}
         <Route
           path="*"

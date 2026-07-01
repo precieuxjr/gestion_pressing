@@ -1,14 +1,11 @@
-// src/services/socket.js
 import { io } from 'socket.io-client';
 
-// 🔑 Clés de stockage par rôle (identiques à celles de api.js)
 const TOKEN_KEYS = {
   admin: 'token_admin',
   livreur: 'token_livreur',
   client: 'token_client',
 };
 
-// 🧠 Déterminer le rôle actuel en fonction de l'URL
 const getCurrentRole = () => {
   const path = window.location.pathname;
   if (path.startsWith('/admin')) return 'admin';
@@ -16,14 +13,19 @@ const getCurrentRole = () => {
   return 'client';
 };
 
-// 🔑 Récupérer la bonne clé de token
-const tokenKey = TOKEN_KEYS[getCurrentRole()];
-const token = localStorage.getItem(tokenKey);
+const getToken = () => {
+  const key = TOKEN_KEYS[getCurrentRole()];
+  return localStorage.getItem(key);
+};
 
-console.log(`🔑 Token pour socket (${getCurrentRole()}) :`, token ? 'présent' : 'absent');
-
+// ✅ Création de la socket avec autoConnect = false
 export const socket = io('http://localhost:5000', {
-  auth: { token },
+  auth: (cb) => {
+    const token = getToken();
+    console.log(`🔑 Token pour socket (${getCurrentRole()}) :`, token ? 'présent' : 'absent');
+    cb({ token });
+  },
+  autoConnect: false,   // ← Important : ne pas se connecter automatiquement
   transports: ['polling', 'websocket'],
 });
 
@@ -38,3 +40,14 @@ socket.on('connect_error', (err) => {
 socket.on('disconnect', () => {
   console.log(`🔴 Socket déconnecté (${getCurrentRole()})`);
 });
+
+// ✅ Fonction pour reconnecter (à appeler après login)
+export const reconnectSocket = () => {
+  console.log('🔄 Reconnexion socket demandée...');
+  if (socket.disconnected) {
+    socket.connect();
+  } else {
+    socket.disconnect();
+    socket.connect();
+  }
+};

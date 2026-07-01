@@ -6,7 +6,7 @@ export const loginLivreur = async (req, res) => {
   try {
     
     const { email, password } = req.body;
-    console.log('🔐 Tentative de login livreur :', req.body.email);
+    console.log(' Tentative de login livreur :', req.body.email);
     if (!email || !password) {
       return res.status(400).json({ error: 'Email et mot de passe requis' });
     }

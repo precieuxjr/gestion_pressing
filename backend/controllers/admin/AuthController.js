@@ -41,7 +41,7 @@ export default  async function login(req, res) {
                     nom: user.nom
                 },
                 process.env.JWT_SECRET,   // variable d'environnement
-                { expiresIn: '4h' }
+                {  expiresIn: '7d' }
             );
 
         // 6. Réponse (ne pas renvoyer le mot de passe)

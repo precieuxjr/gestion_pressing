@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, Edit2, Trash2, MoreHorizontal, User, Mail, Phone, MapPin, 
+import {
+  X, Edit2, Trash2, MoreHorizontal, User, Mail, Phone, MapPin,
   Loader2, CheckCircle2, Trash, Eye, EyeOff, Lock,
-  UserRound, UserRoundCog 
+  UserRound, UserRoundCog
 } from 'lucide-react';
 import { clientsService } from '../services/sevice_client';
 import NavBarHorizontal from '../components/navbar_horizontal';
@@ -69,7 +69,7 @@ export default function Clients() {
         telephone: client.telephone || '',
         adresse: client.adresse || '',
         role: client.role || 'client',
-        password: '' // Ne pas pré-remplir le mot de passe
+        password: ''
       });
     } else {
       setEditingClient(null);
@@ -101,12 +101,10 @@ export default function Clients() {
     setFormLoading(true);
     try {
       if (editingClient) {
-        // Mise à jour : on n'envoie PAS le mot de passe
         const { password, ...updateData } = formData;
-        await clientsService.update(editingClient.public_id, updateData); // ← public_id
+        await clientsService.update(editingClient.public_id, updateData);
         triggerNotification('Client mis à jour avec succès', 'success');
       } else {
-        // Création : on envoie tout, y compris le mot de passe
         await clientsService.create(formData);
         triggerNotification('Client ajouté avec succès', 'success');
       }
@@ -135,7 +133,7 @@ export default function Clients() {
 
   const handleSearch = (term) => setSearchTerm(term);
 
-  // Suppression (avec public_id)
+  // Suppression
   const handleDelete = async (publicId) => {
     try {
       await clientsService.delete(publicId);
@@ -185,21 +183,21 @@ export default function Clients() {
       nom: 'Nombre de clients',
       icon: UserRound,
       result: clients.length,
-      style: "relative w-65 overflow-hidden rounded-xl bg-gradient-to-br from-white to-blue-50 p-4 shadow-sm border border-blue-100",
+      style: "relative w-full overflow-hidden rounded-xl bg-gradient-to-br from-white to-blue-50 dark:from-gray-800 dark:to-blue-900/20 p-4 shadow-sm border border-blue-100 dark:border-blue-800",
     },
     {
       id: 2,
       nom: 'Comptes actifs',
       icon: UserRoundCog,
       result: clients.filter(c => c.statut === 'actif').length,
-      style: "relative w-65 overflow-hidden rounded-xl bg-green-200 p-4 shadow-sm border border-blue-100",
+      style: "relative w-full overflow-hidden rounded-xl bg-gradient-to-br from-white to-green-50 dark:from-gray-800 dark:to-green-900/20 p-4 shadow-sm border border-green-100 dark:border-green-800",
     },
     {
       id: 3,
       nom: 'Comptes suspendus',
       icon: UserRoundCog,
       result: clients.filter(c => c.statut === 'suspendu').length,
-      style: "relative w-65 overflow-hidden rounded-xl bg-red-200 p-4 shadow-sm border border-red-100",
+      style: "relative w-full overflow-hidden rounded-xl bg-gradient-to-br from-white to-red-50 dark:from-gray-800 dark:to-red-900/20 p-4 shadow-sm border border-red-100 dark:border-red-800",
     },
   ];
 
@@ -208,7 +206,7 @@ export default function Clients() {
       initial="hidden"
       animate="visible"
       variants={containerVariants}
-      className="flex flex-col bg-gray-50 min-h-screen w-full"
+      className="flex flex-col bg-gray-50 dark:bg-gray-900 min-h-screen w-full"
     >
       <NavBarHorizontal
         buttonLabel="Nouveau client"
@@ -220,7 +218,7 @@ export default function Clients() {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 justify-items-center my-3.5 bg-white py-6 px-4"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 justify-items-center my-3.5 bg-white dark:bg-gray-800 py-6 px-4 md:px-6"
       >
         {stats.map((item) => (
           <motion.div
@@ -230,40 +228,56 @@ export default function Clients() {
             className={item.style}
           >
             <div className="flex justify-between items-start">
-              <item.icon className="w-6 h-6 text-blue-500" />
-              <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+              <item.icon className="w-6 h-6 text-blue-500 dark:text-blue-400" />
+              <span className="text-xs font-semibold text-blue-600 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/40 px-2 py-1 rounded-full">
                 Unité
               </span>
             </div>
-            <p className="mt-4 text-2xl font-bold text-gray-800">
+            <p className="mt-4 text-2xl font-bold text-gray-800 dark:text-white">
               {item.result || '0'}
             </p>
-            <p className="text-sm text-gray-500">{item.nom}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{item.nom}</p>
           </motion.div>
         ))}
       </motion.div>
 
-      <div className="p-6">
-        <motion.h1 variants={itemVariants} className="text-2xl font-bold mb-6">
+      <div className="p-4 md:p-6">
+        <motion.h1 variants={itemVariants} className="text-2xl font-bold mb-6 text-gray-800 dark:text-white">
           Gestion des clients
         </motion.h1>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-x-hidden">
-          {loading && <div className="text-center py-8 text-gray-500">Chargement des clients...</div>}
-          {error && <div className="text-red-600 text-center py-8">{error}</div>}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-x-hidden">
+          {loading && (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              Chargement des clients...
+            </div>
+          )}
+          {error && (
+            <div className="text-red-600 dark:text-red-400 text-center py-8">{error}</div>
+          )}
           {!loading && !error && (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-900/50">
                   <tr>
-                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">PATIENT</th>
-                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">CONTACT</th>
-                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">EMAIL</th>
-                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ADRESSE</th>
-                    <th className="relative px-4 py-4"><span className="sr-only">Actions</span></th>
+                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      PATIENT
+                    </th>
+                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      CONTACT
+                    </th>
+                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      EMAIL
+                    </th>
+                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      ADRESSE
+                    </th>
+                    <th className="relative px-4 py-4">
+                      <span className="sr-only">Actions</span>
+                    </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-100">
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
                   {filteredClients.map((client, idx) => (
                     <motion.tr
                       key={client.id}
@@ -271,32 +285,37 @@ export default function Clients() {
                       initial="hidden"
                       animate="visible"
                       variants={tableRowVariants}
-                      className="hover:bg-gray-50 transition-colors duration-150"
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150"
                     >
-                      {/* Colonnes... (inchangées) */}
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="shrink-0 h-9 w-9 rounded-full bg-teal-50 flex items-center justify-center text-teal-700 font-medium text-sm">
+                          <div className="shrink-0 h-9 w-9 rounded-full bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-teal-700 dark:text-teal-300 font-medium text-sm">
                             {getInitials(client) || '?'}
                           </div>
                           <div className="ml-3">
-                            <div className="text-sm font-medium text-gray-900">
-                              {client.prenom} {client.nom} {client.postnom}
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                              {client.prenom} {client.nom}
                             </div>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-600 font-mono">{client.telephone || '—'}</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-300 font-mono">
+                          {client.telephone || '—'}
+                        </div>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-700">{client.email || '—'}</div>
+                        <div className="text-sm text-gray-700 dark:text-gray-300">
+                          {client.email || '—'}
+                        </div>
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex flex-col space-y-1.5">
-                          <span className="text-sm text-gray-700 truncate max-w-xs">{client.adresse || '—'}</span>
+                          <span className="text-sm text-gray-700 dark:text-gray-300 truncate max-w-xs">
+                            {client.adresse || '—'}
+                          </span>
                           <div className="flex items-center">
-                            <span className="inline-flex items-center gap-1.5 text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
+                            <span className="inline-flex items-center gap-1.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-full">
                               <span className={`w-2 h-2 rounded-full ${client.statut === 'actif' ? 'bg-green-500' : 'bg-red-500'}`}></span>
                               <span className="font-medium">{client.statut === 'actif' ? 'Actif' : 'Suspendu'}</span>
                             </span>
@@ -305,36 +324,33 @@ export default function Clients() {
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end gap-2 relative">
-                          {/* Modifier */}
                           <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => handleOpenForm(client)}
-                            className="text-gray-400 hover:text-blue-600 transition-colors p-1 rounded-full hover:bg-gray-100"
+                            className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
                             title="Modifier"
                           >
                             <Edit2 className="w-4 h-4" />
                           </motion.button>
-
-                          {/* Supprimer */}
                           <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            onClick={() => setDeleteConfirm(client.public_id)} 
-                            className="text-gray-400 hover:text-red-600 transition-colors p-1 rounded-full hover:bg-gray-100"
+                            onClick={() => setDeleteConfirm(client.public_id)}
+                            className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 transition-colors p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
                             title="Supprimer"
                           >
                             <Trash2 className="w-4 h-4" />
                           </motion.button>
-
-                       
                         </div>
                       </td>
                     </motion.tr>
                   ))}
                   {filteredClients.length === 0 && (
                     <tr>
-                      <td colSpan="5" className="text-center py-12 text-gray-500">Aucun client trouvé</td>
+                      <td colSpan="5" className="text-center py-12 text-gray-500 dark:text-gray-400">
+                        Aucun client trouvé
+                      </td>
                     </tr>
                   )}
                 </tbody>
@@ -344,7 +360,7 @@ export default function Clients() {
         </div>
       </div>
 
-      {/* Modal formulaire – inchangé mais corrigé pour le scroll */}
+      {/* Modal formulaire */}
       <AnimatePresence>
         {showForm && (
           <motion.div
@@ -353,7 +369,7 @@ export default function Clients() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             onClick={(e) => {
               if (e.target === e.currentTarget) setShowForm(false);
             }}
@@ -363,9 +379,9 @@ export default function Clients() {
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
+              className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
             >
-              <div className="bg-gradient-to-br from-blue-500 to-sky-400 px-6 py-5 text-white">
+              <div className="bg-gradient-to-br from-blue-500 to-sky-400 dark:from-blue-600 dark:to-sky-500 px-6 py-5 text-white">
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-xl font-bold">
@@ -387,11 +403,10 @@ export default function Clients() {
               </div>
 
               <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-                {/* ... tous les champs ... (inchangés) */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
-                      <User className="w-4 h-4 text-blue-500" />
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      <User className="w-4 h-4 text-blue-500 dark:text-blue-400" />
                       Nom *
                     </label>
                     <input
@@ -401,12 +416,12 @@ export default function Clients() {
                       value={formData.nom}
                       onChange={handleChange}
                       placeholder="Tshisekedi"
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-gray-50/50 hover:bg-white focus:bg-white text-gray-800 placeholder:text-gray-400"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-gray-50/50 hover:bg-white focus:bg-white dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:bg-gray-600 text-gray-800 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
                     />
                   </div>
                   <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
-                      <User className="w-4 h-4 text-blue-500" />
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      <User className="w-4 h-4 text-blue-500 dark:text-blue-400" />
                       Prénom *
                     </label>
                     <input
@@ -416,14 +431,14 @@ export default function Clients() {
                       value={formData.prenom}
                       onChange={handleChange}
                       placeholder="Felix"
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-gray-50/50 hover:bg-white focus:bg-white text-gray-800 placeholder:text-gray-400"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-gray-50/50 hover:bg-white focus:bg-white dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:bg-gray-600 text-gray-800 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
-                    <User className="w-4 h-4 text-blue-500" />
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    <User className="w-4 h-4 text-blue-500 dark:text-blue-400" />
                     Postnom
                   </label>
                   <input
@@ -432,13 +447,13 @@ export default function Clients() {
                     value={formData.postnom}
                     onChange={handleChange}
                     placeholder="Lema"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-gray-50/50 hover:bg-white focus:bg-white text-gray-800 placeholder:text-gray-400"
+                    className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-gray-50/50 hover:bg-white focus:bg-white dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:bg-gray-600 text-gray-800 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
                   />
                 </div>
 
                 <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
-                    <Mail className="w-4 h-4 text-blue-500" />
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    <Mail className="w-4 h-4 text-blue-500 dark:text-blue-400" />
                     Email *
                   </label>
                   <input
@@ -448,13 +463,13 @@ export default function Clients() {
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="tresor@email.com"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-gray-50/50 hover:bg-white focus:bg-white text-gray-800 placeholder:text-gray-400"
+                    className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-gray-50/50 hover:bg-white focus:bg-white dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:bg-gray-600 text-gray-800 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
                   />
                 </div>
 
                 <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
-                    <Phone className="w-4 h-4 text-blue-500" />
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    <Phone className="w-4 h-4 text-blue-500 dark:text-blue-400" />
                     Téléphone *
                   </label>
                   <input
@@ -464,13 +479,13 @@ export default function Clients() {
                     value={formData.telephone}
                     onChange={handleChange}
                     placeholder="+243 812 345 678"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-gray-50/50 hover:bg-white focus:bg-white text-gray-800 placeholder:text-gray-400"
+                    className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-gray-50/50 hover:bg-white focus:bg-white dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:bg-gray-600 text-gray-800 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
                   />
                 </div>
 
                 <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
-                    <MapPin className="w-4 h-4 text-blue-500" />
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    <MapPin className="w-4 h-4 text-blue-500 dark:text-blue-400" />
                     Adresse
                   </label>
                   <textarea
@@ -479,15 +494,14 @@ export default function Clients() {
                     value={formData.adresse}
                     onChange={handleChange}
                     placeholder="Rue, quartier, ville"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-gray-50/50 hover:bg-white focus:bg-white text-gray-800 placeholder:text-gray-400 resize-none"
+                    className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-gray-50/50 hover:bg-white focus:bg-white dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:bg-gray-600 text-gray-800 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 resize-none"
                   />
                 </div>
 
-                {/* Champ mot de passe (uniquement en création) */}
                 {!editingClient && (
                   <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
-                      <Lock className="w-4 h-4 text-blue-500" />
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      <Lock className="w-4 h-4 text-blue-500 dark:text-blue-400" />
                       Mot de passe *
                     </label>
                     <div className="relative">
@@ -498,12 +512,12 @@ export default function Clients() {
                         value={formData.password}
                         onChange={handleChange}
                         placeholder="••••••••"
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-gray-50/50 hover:bg-white focus:bg-white text-gray-800 placeholder:text-gray-400 pr-10"
+                        className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-gray-50/50 hover:bg-white focus:bg-white dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:bg-gray-600 text-gray-800 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 pr-10"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition"
                       >
                         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
@@ -511,11 +525,11 @@ export default function Clients() {
                   </div>
                 )}
 
-                <div className="flex gap-3 pt-3 border-t border-gray-100">
+                <div className="flex gap-3 pt-3 border-t border-gray-100 dark:border-gray-700">
                   <button
                     type="button"
                     onClick={() => setShowForm(false)}
-                    className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-gray-600 font-medium hover:bg-gray-50 transition-colors"
+                    className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-600 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
                     Annuler
                   </button>
@@ -524,7 +538,7 @@ export default function Clients() {
                     whileTap={{ scale: 0.98 }}
                     type="submit"
                     disabled={formLoading}
-                    className="flex-1 px-4 py-2.5 bg-gradient-to-br from-blue-500 to-sky-400 text-white font-medium rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="flex-1 px-4 py-2.5 bg-gradient-to-br from-blue-500 to-sky-400 dark:from-blue-600 dark:to-sky-500 text-white font-medium rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {formLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                     {editingClient ? 'Mettre à jour' : 'Ajouter le client'}
@@ -545,14 +559,28 @@ export default function Clients() {
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           >
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
-              <h3 className="text-lg font-bold mb-4">Confirmer la suppression</h3>
-              <p className="text-gray-600 mb-6">Êtes-vous sûr de vouloir supprimer ce client ? Cette action est irréversible.</p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm p-6">
+              <h3 className="text-lg font-bold mb-4 text-gray-800 dark:text-white">
+                Confirmer la suppression
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
+                Êtes-vous sûr de vouloir supprimer ce client ? Cette action est irréversible.
+              </p>
               <div className="flex gap-3">
-                <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Annuler</button>
-                <button onClick={() => handleDelete(deleteConfirm)} className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Supprimer</button>
+                <button
+                  onClick={() => setDeleteConfirm(null)}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={() => handleDelete(deleteConfirm)}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Supprimer
+                </button>
               </div>
             </div>
           </motion.div>
@@ -569,27 +597,27 @@ export default function Clients() {
             transition={{ duration: 0.3 }}
             className="fixed bottom-5 right-5 z-50"
           >
-            <div className={`flex items-center gap-3 p-4 rounded-xl shadow-lg border text-sm font-medium max-w-sm bg-white transition-all duration-300 ${
-              notification.type === 'success' 
-                ? 'border-l-4 border-l-green-500 text-gray-800' 
-                : 'border-l-4 border-l-red-500 text-gray-800'
+            <div className={`flex items-center gap-3 p-4 rounded-xl shadow-lg border text-sm font-medium max-w-sm bg-white dark:bg-gray-800 transition-all duration-300 ${
+              notification.type === 'success'
+                ? 'border-l-4 border-l-green-500 text-gray-800 dark:text-gray-200'
+                : 'border-l-4 border-l-red-500 text-gray-800 dark:text-gray-200'
             }`}>
               {notification.type === 'success' ? (
-                <div className="p-1.5 bg-green-50 text-green-600 rounded-full">
+                <div className="p-1.5 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full">
                   <CheckCircle2 className="w-5 h-5" />
                 </div>
               ) : (
-                <div className="p-1.5 bg-red-50 text-red-600 rounded-full">
+                <div className="p-1.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full">
                   <Trash className="w-5 h-5" />
                 </div>
               )}
               <div>
-                <p className="font-bold text-gray-900">
+                <p className="font-bold text-gray-900 dark:text-white">
                   {notification.type === 'success' ? 'Succès !' : 'Supprimé !'}
                 </p>
-                <p className="text-xs text-gray-500">{notification.message}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{notification.message}</p>
               </div>
-              <button onClick={() => setNotification(null)} className="ml-auto text-gray-400 hover:text-gray-600">
+              <button onClick={() => setNotification(null)} className="ml-auto text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
                 <X className="w-4 h-4" />
               </button>
             </div>

@@ -1,7 +1,5 @@
-import { useState, useEffect } from 'react';
-import { livraisonService } from '../services/livraison';
-import { commandesService } from '../services/commandes';
-import toast from 'react-hot-toast';
+// src/components/OrderDetails.jsx
+import { useState } from 'react';
 
 const InfoItem = ({ label, value }) => (
   <div>
@@ -17,42 +15,9 @@ const TotalLine = ({ label, value, isBold = false }) => (
   </div>
 );
 
-const OrderDetails = ({ order, onUpdate }) => {
-  const [livreurs, setLivreurs] = useState([]);
-  const [selectedLivreurId, setSelectedLivreurId] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [assigning, setAssigning] = useState(false);
-
-  // Normalisation des statuts (ignore accents, casse)
-  const normalizeStatut = (statut) => {
-    if (!statut) return '';
-    return statut
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
-  };
-
-  // Charger les livreurs disponibles si besoin
-  useEffect(() => {
-    if (order && !order.livreur_id && (order.statut === 'Payée' || order.statut === 'Prêt')) {
-      const fetchLivreurs = async () => {
-        try {
-          const data = await livraisonService.getLivreursDisponibles();
-          setLivreurs(data);
-        } catch (err) {
-          console.error('Erreur chargement livreurs:', err);
-        }
-      };
-      fetchLivreurs();
-    }
-  }, [order]);
-
+const OrderDetails = ({ order, onClose }) => {
   if (!order) {
-    return (
-      <div className="p-6 text-center text-gray-500 dark:text-gray-400">
-        Aucune commande sélectionnée
-      </div>
-    );
+    return <div className="p-6 text-center text-gray-500 dark:text-gray-400">Aucune commande sélectionnée</div>;
   }
 
   const services = Array.isArray(order.services) ? order.services : [];
@@ -90,63 +55,6 @@ const OrderDetails = ({ order, onUpdate }) => {
     return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
   };
 
-  // --- Actions ---
-  const handleMarquerPayee = async () => {
-    if (!window.confirm('Marquer cette commande comme payée ?')) return;
-    setLoading(true);
-    try {
-      await commandesService.updateStatus(order.id, 'Payée');
-      toast.success('Commande marquée comme payée');
-      if (onUpdate) onUpdate();
-    } catch (err) {
-      toast.error(err.message || 'Erreur lors de la mise à jour');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAssignerLivreur = async () => {
-    if (!selectedLivreurId) {
-      toast.error('Veuillez sélectionner un livreur');
-      return;
-    }
-    setAssigning(true);
-    try {
-      await livraisonService.assignerLivreur(order.id, selectedLivreurId);
-      toast.success('Livreur assigné avec succès');
-      if (onUpdate) onUpdate();
-      setSelectedLivreurId('');
-    } catch (err) {
-      toast.error(err.message || 'Erreur lors de l\'assignation');
-    } finally {
-      setAssigning(false);
-    }
-  };
-
-  const handleAnnulerAssignation = async () => {
-    if (!window.confirm('Annuler l\'assignation du livreur ?')) return;
-    setAssigning(true);
-    try {
-      await livraisonService.annulerAssignation(order.id);
-      toast.success('Assignation annulée');
-      if (onUpdate) onUpdate();
-    } catch (err) {
-      toast.error(err.message || 'Erreur lors de l\'annulation');
-    } finally {
-      setAssigning(false);
-    }
-  };
-
-  // --- Déterminer les actions possibles (normalisé) ---
-  const statutNormalise = normalizeStatut(order.statut);
-  const estPayee = statutNormalise === 'payee';
-  const estLivree = statutNormalise === 'livree';
-  const estPret = statutNormalise === 'pret';
-
-  const peutMarquerPayee = !estPayee && !estLivree;
-  const peutAssigner = !order.livreur_id && (estPayee || estPret);
-  const aLivreur = !!order.livreur_id;
-
   return (
     <div className="w-full bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden border border-gray-100 dark:border-gray-700 transition-colors">
       {/* En-tête */}
@@ -169,13 +77,10 @@ const OrderDetails = ({ order, onUpdate }) => {
               {order.client || 'Client inconnu'}
             </div>
             <div className="text-xs text-gray-600 dark:text-gray-300">
-              {order.phone || '—'}<br />
+              {order.telephone || '—'}<br />
               {order.email || '—'}
             </div>
           </div>
-          <button className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 px-3 py-1.5 rounded-full text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-gray-700 dark:text-gray-200 whitespace-nowrap">
-            Voir le profil →
-          </button>
         </div>
 
         {/* Infos commande */}
@@ -189,7 +94,7 @@ const OrderDetails = ({ order, onUpdate }) => {
           </div>
         </div>
 
-        {/* Services */}
+        {/* Liste des services */}
         <div className="font-semibold text-sm text-gray-800 dark:text-white mb-2">
           Articles ({services.reduce((sum, s) => sum + (s.quantite || 1), 0)})
         </div>
@@ -251,85 +156,28 @@ const OrderDetails = ({ order, onUpdate }) => {
           </div>
         </div>
 
-        {/* Livreur assigné */}
-        {aLivreur && (
-          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800 flex justify-between items-center">
-            <div>
-              <span className="text-xs text-blue-700 dark:text-blue-300 font-medium">Livreur assigné :</span>
-              <span className="text-sm font-semibold text-blue-800 dark:text-blue-200 ml-2">
-                {order.livreur_nom || 'Livreur'}
-              </span>
-            </div>
-            <button
-              onClick={handleAnnulerAssignation}
-              disabled={assigning}
-              className="text-red-500 hover:text-red-700 text-xs font-medium px-3 py-1 rounded border border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50"
-            >
-              Annuler
-            </button>
+        {/* Livreur assigné (si présent) */}
+        {order.livreur_nom && (
+          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
+            <span className="text-xs text-blue-700 dark:text-blue-300 font-medium">Livreur assigné :</span>
+            <span className="text-sm font-semibold text-blue-800 dark:text-blue-200 ml-2">
+              {order.livreur_nom}
+            </span>
           </div>
         )}
       </div>
 
-      {/* Actions */}
-      <div className="px-4 md:px-6 pb-6 pt-3 flex flex-col sm:flex-row gap-3 border-t border-gray-100 dark:border-gray-700">
-        <button className="flex-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-full py-2.5 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition text-gray-700 dark:text-gray-200">
-          Imprimer le ticket
-        </button>
-
-        {/* Marquer comme payée */}
-        {peutMarquerPayee && (
+      {/* Bouton de fermeture (optionnel, si vous voulez un bouton explicite) */}
+      {onClose && (
+        <div className="px-4 md:px-6 pb-6 pt-3 border-t border-gray-100 dark:border-gray-700">
           <button
-            onClick={handleMarquerPayee}
-            disabled={loading}
-            className="flex-1 bg-emerald-500 dark:bg-emerald-600 rounded-full py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 dark:hover:bg-emerald-700 transition disabled:opacity-50"
+            onClick={onClose}
+            className="w-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-full py-2.5 text-sm font-semibold transition"
           >
-            {loading ? 'Chargement...' : '💳 Marquer comme payée'}
+            Fermer
           </button>
-        )}
-
-        {/* Assigner un livreur */}
-        {peutAssigner && (
-          <div className="flex-1 flex items-center gap-2">
-            <select
-              value={selectedLivreurId}
-              onChange={(e) => setSelectedLivreurId(e.target.value)}
-              className="flex-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-full px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 transition-colors"
-            >
-              <option value="">Choisir un livreur</option>
-              {livreurs.map((l) => (
-                <option key={l.public_id || l.id} value={l.public_id || l.id}>
-                  {l.prenom} {l.nom}
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={handleAssignerLivreur}
-              disabled={assigning || !selectedLivreurId}
-              className="bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 text-white text-sm font-semibold rounded-full px-4 py-2 transition disabled:opacity-50 whitespace-nowrap"
-            >
-              {assigning ? '...' : '🚚 Assigner'}
-            </button>
-          </div>
-        )}
-
-        {/* Messages d'état */}
-        {estPayee && !peutAssigner && (
-          <span className="text-sm text-emerald-600 dark:text-emerald-400 text-center py-2 font-medium">
-            ✅ Déjà payée
-          </span>
-        )}
-        {estLivree && (
-          <span className="text-sm text-gray-400 dark:text-gray-500 text-center py-2">
-            📦 Commande livrée
-          </span>
-        )}
-        {!peutMarquerPayee && !peutAssigner && !estPayee && !estLivree && (
-          <span className="text-sm text-gray-400 dark:text-gray-500 text-center py-2">
-            Aucune action disponible
-          </span>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

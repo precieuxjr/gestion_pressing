@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-
+import { reconnectSocket } from './services/socket';
 import { socket } from './services/socket';
 import { NotificationProvider } from './context/NotificationContext';
 import { useWebSocketNotifications } from './hooks/useWebSocketNotifications';
@@ -22,7 +22,7 @@ const AdminLayout = () => {
   return (
     <div className="flex relative min-h-screen">
       <Navbar />
-      <main className="flex-1 ml-72 overflow-x-hidden">
+      <main className="flex-1 ml-0 lg:ml-64 overflow-x-hidden pt-16 lg:pt-0 transition-all duration-300">
         <Outlet />
       </main>
     </div>
@@ -33,7 +33,6 @@ const AdminLayout = () => {
 function AppContent() {
   console.log('🔄 AppContent monté (admin)');
 
-  // Active l'écoute des notifications WebSocket
   useWebSocketNotifications();
 
   useEffect(() => {
@@ -51,6 +50,13 @@ function AppContent() {
       socket.off('connect', onConnect);
     };
   }, []);
+  useEffect(() => {
+    const token = localStorage.getItem('token_admin');
+    if (token) {
+      reconnectSocket();
+      console.log('token recharger ! ')
+    }
+  }, []);
 
   return (
     <Routes>
@@ -67,6 +73,7 @@ function AppContent() {
         }
       >
         <Route path="dashboard" element={<Dashboard />} />
+        <Route path="commandes/:id" element={<Commandes />} />
         <Route path="commandes" element={<Commandes />} />
         <Route path="clients" element={<Clients />} />
         <Route path="services" element={<Services_pressing />} />

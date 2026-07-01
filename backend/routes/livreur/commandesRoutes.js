@@ -9,6 +9,7 @@ import {
   updateStatutLivraison,
   getMesStatistiques,
   getCommandeDetails,
+  getCommandeDetailsForLivreur,
   marquerCommandePayee
 } from '../../controllers/livreur/commandeController.js';
 
@@ -24,6 +25,7 @@ router.get('/commandes/disponibles', getCommandesDisponibles);
 router.post('/commandes/:id/accepter', accepterCommande);
 router.put('/commandes/:publicId/statut-livraison', updateStatutLivraison);
 router.put('/commandes/:id/payer', marquerCommandePayee);
+router.get('/commandes/:publicId', getCommandeDetailsForLivreur);
 router.get('/commandes/:id', getCommandeDetails);
 router.get('/statistiques', getMesStatistiques);
 

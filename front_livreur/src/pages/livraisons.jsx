@@ -7,10 +7,13 @@ import {
   Truck,
   Eye,
   Search,
-  XCircle
+  XCircle,
+  Loader2,
+  AlertCircle,
+  Check,
+  X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-
 import {
   getMesCommandes,
   updateStatutLivraison
@@ -28,11 +31,26 @@ const mapStatutLivraison = (statut) => {
 };
 
 const statutLivraisonConfig = {
-  en_attente: { label: 'En attente', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
-  collectee: { label: 'Collectée', color: 'bg-blue-100 text-blue-800 border-blue-200' },
-  en_cours: { label: 'En cours', color: 'bg-purple-100 text-purple-800 border-purple-200' },
-  livree: { label: 'Livrée', color: 'bg-green-100 text-green-800 border-green-200' },
-  annulee: { label: 'Annulée', color: 'bg-red-100 text-red-800 border-red-200' }
+  en_attente: {
+    label: 'En attente',
+    color: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700'
+  },
+  collectee: {
+    label: 'Collectée',
+    color: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700'
+  },
+  en_cours: {
+    label: 'En cours',
+    color: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700'
+  },
+  livree: {
+    label: 'Livrée',
+    color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700'
+  },
+  annulee: {
+    label: 'Annulée',
+    color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700'
+  }
 };
 
 const statutOptions = [
@@ -70,7 +88,9 @@ export default function LivreurCommandes() {
       setError(null);
     } catch (err) {
       setError(err.message);
-      toast.error('Erreur de chargement des commandes');
+      toast.error('Erreur de chargement des commandes', {
+        icon: <X className="w-5 h-5 text-red-500" />
+      });
     } finally {
       setLoading(false);
     }
@@ -98,9 +118,13 @@ export default function LivreurCommandes() {
     try {
       await updateStatutLivraison(id, nouveauStatut);
       await fetchCommandes();
-      toast.success(`Statut de livraison mis à jour : ${nouveauStatut}`);
+      toast.success(`Statut mis à jour : ${nouveauStatut}`, {
+        icon: <Check className="w-5 h-5 text-emerald-600" />
+      });
     } catch (err) {
-      toast.error(err.message || 'Erreur lors de la mise à jour');
+      toast.error(err.message || 'Erreur lors de la mise à jour', {
+        icon: <X className="w-5 h-5 text-red-500" />
+      });
     }
   };
 
@@ -112,10 +136,10 @@ export default function LivreurCommandes() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f4f7fb] p-6 flex items-center justify-center">
+      <div className="min-h-screen bg-[#f4f7fb] dark:bg-gray-900 p-6 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
-          <p className="text-gray-500">Chargement des commandes...</p>
+          <Loader2 className="animate-spin w-12 h-12 text-emerald-500 dark:text-emerald-400 mx-auto mb-4" />
+          <p className="text-gray-500 dark:text-gray-400">Chargement des commandes...</p>
         </div>
       </div>
     );
@@ -123,13 +147,14 @@ export default function LivreurCommandes() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#f4f7fb] p-6 flex items-center justify-center">
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6 max-w-lg">
-          <h3 className="text-red-700 font-semibold">Erreur</h3>
-          <p className="text-red-600">{error}</p>
+      <div className="min-h-screen bg-[#f4f7fb] dark:bg-gray-900 p-6 flex items-center justify-center">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-xl p-6 max-w-lg text-center">
+          <AlertCircle className="w-10 h-10 text-red-500 dark:text-red-400 mx-auto mb-3" />
+          <h3 className="text-red-700 dark:text-red-300 font-semibold">Erreur</h3>
+          <p className="text-red-600 dark:text-red-200">{error}</p>
           <button
             onClick={fetchCommandes}
-            className="mt-4 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
+            className="mt-4 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors"
           >
             Réessayer
           </button>
@@ -139,71 +164,65 @@ export default function LivreurCommandes() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f7fb] p-6 w-250">
-      {/* En-tête */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Mes commandes</h1>
-        <p className="text-gray-500">Gérez les livraisons qui vous sont assignées.</p>
+    <div className="min-h-screen bg-[#f4f7fb] dark:bg-gray-900 p-4 md:p-6">
+      {/* En-tête centré */}
+      <div className="text-center mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">Mes commandes</h1>
+        <p className="text-gray-500 dark:text-gray-400">Gérez les livraisons qui vous sont assignées.</p>
       </div>
 
       {/* Cartes récapitulatives */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4 border-emerald-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Total</p>
-              <p className="text-2xl font-bold text-gray-800">{total}</p>
-            </div>
-            <Package className="text-emerald-500" size={28} />
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-6 md:mb-8">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border-l-4 border-emerald-500 dark:border-emerald-400 flex items-center justify-between transition-colors">
+          <div>
+            <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Total</p>
+            <p className="text-xl md:text-2xl font-bold text-gray-800 dark:text-white">{total}</p>
           </div>
+          <Package className="text-emerald-500 dark:text-emerald-400" size={24} />
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4 border-yellow-400">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">En attente</p>
-              <p className="text-2xl font-bold text-gray-800">{enAttente}</p>
-            </div>
-            <Clock className="text-yellow-400" size={28} />
+
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border-l-4 border-yellow-400 dark:border-yellow-500 flex items-center justify-between transition-colors">
+          <div>
+            <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">En attente</p>
+            <p className="text-xl md:text-2xl font-bold text-gray-800 dark:text-white">{enAttente}</p>
           </div>
+          <Clock className="text-yellow-400 dark:text-yellow-500" size={24} />
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4 border-blue-400">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Collectées</p>
-              <p className="text-2xl font-bold text-gray-800">{collectees}</p>
-            </div>
-            <Truck className="text-blue-400" size={28} />
+
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border-l-4 border-blue-400 dark:border-blue-500 flex items-center justify-between transition-colors">
+          <div>
+            <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Collectées</p>
+            <p className="text-xl md:text-2xl font-bold text-gray-800 dark:text-white">{collectees}</p>
           </div>
+          <Truck className="text-blue-400 dark:text-blue-500" size={24} />
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4 border-purple-400">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">En cours</p>
-              <p className="text-2xl font-bold text-gray-800">{enCours}</p>
-            </div>
-            <Truck className="text-purple-400" size={28} />
+
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border-l-4 border-purple-400 dark:border-purple-500 flex items-center justify-between transition-colors">
+          <div>
+            <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">En cours</p>
+            <p className="text-xl md:text-2xl font-bold text-gray-800 dark:text-white">{enCours}</p>
           </div>
+          <Truck className="text-purple-400 dark:text-purple-500" size={24} />
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4 border-red-400">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Annulées</p>
-              <p className="text-2xl font-bold text-gray-800">{annulees}</p>
-            </div>
-            <XCircle className="text-red-400" size={28} />
+
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border-l-4 border-red-400 dark:border-red-500 flex items-center justify-between transition-colors">
+          <div>
+            <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Annulées</p>
+            <p className="text-xl md:text-2xl font-bold text-gray-800 dark:text-white">{annulees}</p>
           </div>
+          <XCircle className="text-red-400 dark:text-red-500" size={24} />
         </div>
       </div>
 
       {/* Filtres et recherche */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <div className="flex items-center gap-2">
-          <label htmlFor="statut" className="text-sm font-medium text-gray-700">Filtrer :</label>
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <label htmlFor="statut" className="text-sm font-medium text-gray-700 dark:text-gray-300">Filtrer :</label>
           <select
             id="statut"
             value={filtreStatut}
             onChange={(e) => setFiltreStatut(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
           >
             {statutOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -214,72 +233,73 @@ export default function LivreurCommandes() {
         <div className="relative w-full sm:w-64">
           <input
             type="text"
-            placeholder="Rechercher une commande..."
+            placeholder="Rechercher..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
           />
-          <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+          <Search className="absolute left-3 top-2.5 text-gray-400 dark:text-gray-500" size={18} />
         </div>
       </div>
 
       {/* Tableau des commandes */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden border border-gray-100 dark:border-gray-700 transition-colors">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-900/50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Adresse</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut livraison</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">ID</th>
+                <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Client</th>
+                <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">Adresse</th>
+                <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Statut</th>
+                <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">Date</th>
+                <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">Montant</th>
+                <th className="px-4 md:px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {commandesFiltrees.length > 0 ? (
                 commandesFiltrees.map((cmd) => {
-                  const stat = statutLivraisonConfig[cmd.statut_livraison_cle] || { label: cmd.statut_livraison, color: 'bg-gray-100 text-gray-800' };
+                  const stat = statutLivraisonConfig[cmd.statut_livraison_cle] || {
+                    label: cmd.statut_livraison,
+                    color: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                  };
                   return (
-                    <tr key={cmd.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">{cmd.id}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{cmd.client}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">{cmd.adresse}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                    <tr key={cmd.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                      <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white">{cmd.id}</td>
+                      <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">{cmd.client}</td>
+                      <td className="px-4 md:px-6 py-4 text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate hidden sm:table-cell">{cmd.adresse}</td>
+                      <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${stat.color}`}>
                           {stat.label}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{cmd.date}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">{cmd.montant} €</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex items-center justify-end gap-2">
+                      <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 hidden md:table-cell">{cmd.date}</td>
+                      <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white hidden lg:table-cell">{cmd.montant} €</td>
+                      <td className="px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex items-center justify-end gap-1 md:gap-2 flex-wrap">
                           <button
-                            className="text-gray-500 hover:text-emerald-600 transition-colors"
+                            className="text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
                             title="Voir détails"
                           >
                             <Eye size={18} />
                           </button>
 
-                          {/* Bouton Rétablir (si annulée) */}
                           {cmd.statut_livraison_cle === 'annulee' && (
                             <button
                               onClick={() => handleChangerStatut(cmd.id, 'En cours')}
-                              className="text-orange-500 hover:text-orange-700 text-xs font-medium px-2 py-1 rounded border border-orange-200 hover:bg-orange-50 transition-colors"
+                              className="text-orange-500 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 text-xs font-medium px-2 py-1 rounded border border-orange-200 dark:border-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
                             >
                               Rétablir
                             </button>
                           )}
 
-                          {/* Actions normales (si non annulée) */}
                           {cmd.statut_livraison_cle !== 'annulee' && (
                             <>
                               {cmd.statut_livraison_cle === 'en_attente' && (
                                 <button
                                   onClick={() => handleChangerStatut(cmd.id, 'Collectée')}
-                                  className="text-blue-500 hover:text-blue-700 text-xs font-medium px-2 py-1 rounded border border-blue-200 hover:bg-blue-50 transition-colors"
+                                  className="text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-xs font-medium px-2 py-1 rounded border border-blue-200 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                                 >
                                   Collecter
                                 </button>
@@ -287,7 +307,7 @@ export default function LivreurCommandes() {
                               {cmd.statut_livraison_cle === 'collectee' && (
                                 <button
                                   onClick={() => handleChangerStatut(cmd.id, 'En cours')}
-                                  className="text-purple-500 hover:text-purple-700 text-xs font-medium px-2 py-1 rounded border border-purple-200 hover:bg-purple-50 transition-colors"
+                                  className="text-purple-500 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 text-xs font-medium px-2 py-1 rounded border border-purple-200 dark:border-purple-700 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
                                 >
                                   Démarrer
                                 </button>
@@ -295,17 +315,16 @@ export default function LivreurCommandes() {
                               {cmd.statut_livraison_cle === 'en_cours' && (
                                 <button
                                   onClick={() => handleChangerStatut(cmd.id, 'Livrée')}
-                                  className="text-green-500 hover:text-green-700 text-xs font-medium px-2 py-1 rounded border border-green-200 hover:bg-green-50 transition-colors"
+                                  className="text-green-500 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 text-xs font-medium px-2 py-1 rounded border border-green-200 dark:border-green-700 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
                                 >
                                   Livrer
                                 </button>
                               )}
 
-                              {/* Bouton Annuler (sauf si livrée ou annulée) */}
                               {cmd.statut_livraison_cle !== 'livree' && cmd.statut_livraison_cle !== 'annulee' && (
                                 <button
                                   onClick={() => handleAnnuler(cmd.id)}
-                                  className="text-red-500 hover:text-red-700 text-xs font-medium px-2 py-1 rounded border border-red-200 hover:bg-red-50 transition-colors"
+                                  className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-xs font-medium px-2 py-1 rounded border border-red-200 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                                 >
                                   Annuler
                                 </button>
@@ -314,10 +333,10 @@ export default function LivreurCommandes() {
                           )}
 
                           {cmd.statut_livraison_cle === 'livree' && (
-                            <span className="text-xs text-gray-400">Terminée</span>
+                            <span className="text-xs text-gray-400 dark:text-gray-500">Terminée</span>
                           )}
                           {cmd.statut_livraison_cle === 'annulee' && (
-                            <span className="text-xs text-gray-400 ml-2">(Annulée)</span>
+                            <span className="text-xs text-gray-400 dark:text-gray-500 ml-2">(Annulée)</span>
                           )}
                         </div>
                       </td>
@@ -326,7 +345,7 @@ export default function LivreurCommandes() {
                 })
               ) : (
                 <tr>
-                  <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan="7" className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
                     Aucune commande trouvée.
                   </td>
                 </tr>

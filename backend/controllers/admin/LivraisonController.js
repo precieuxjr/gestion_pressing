@@ -1,5 +1,8 @@
 import Commande from '../../models/commandes.js';
 import User from '../../models/users.js';
+import Notification from '../../models/Notification.js';
+import db from '../../config/db.js';
+
 
 export const getCommandesPayees = async (req, res) => {
   try {
@@ -41,7 +44,7 @@ export async function getAllLivreurs(req, res) {
     res.status(500).json({ error: error.message });
   }
 };
-
+// =====================================================
 export async function assignerLivreur(req, res) {
   try {
     const { publicId } = req.params;
@@ -90,20 +93,74 @@ export async function assignerLivreur(req, res) {
 
     const updated = await Commande.findByIdWithLivraison(publicId);
 
+    // 1️⃣ Récupérer les parties prenantes
+    const client = await User.findById(commande.user_id);
+    const clientPublicId = client?.public_id || null;
+    const livreurPublicId = livreur.public_id;
+
+    // 2️⃣ Récupérer l'instance Socket.IO
     const io = req.app.get('io');
+
     if (io) {
-      const client = await User.findById(commande.user_id);
-      const clientPublicId = client?.public_id || null;
+      // 🔹 Récupérer tous les administrateurs
+      const [admins] = await db.execute('SELECT public_id FROM users WHERE role = ?', ['admin']);
+
+      // Message pour les admins
+      const adminMessage = `Un livreur (${livreur.prenom} ${livreur.nom}) a été assigné à la commande #${publicId} par l'administrateur ${req.user.prenom} ${req.user.nom}`;
+      const adminLink = `/admin/livraisons/${publicId}`;
+
+      // 🔔 Notification persistante pour chaque admin
+      for (const admin of admins) {
+        await Notification.create({
+          user_public_id: admin.public_id,
+          type: 'livreur_assigne',
+          title: '🚚 Livreur assigné',
+          message: adminMessage,
+          link: adminLink
+        });
+      }
+
+      // 📨 Notification persistante pour le client
+      if (clientPublicId) {
+        await Notification.create({
+          user_public_id: clientPublicId,
+          type: 'livreur_assigne',
+          title: '🚚 Livreur en route',
+          message: `Un livreur (${livreur.prenom} ${livreur.nom}) a été assigné à votre commande #${publicId}.`,
+          link: `/client/commandes/${publicId}`
+        });
+      }
+
+      // 📨 Notification persistante pour le livreur
+      await Notification.create({
+        user_public_id: livreurPublicId,
+        type: 'livreur_assigne',
+        title: '📦 Nouvelle mission',
+        message: `Vous avez été assigné à la commande #${publicId}.`,
+        link: `/livreur/commandes/${publicId}`
+      });
+
+      // ⚡ Émettre en temps réel
       const payload = {
         type: 'livreur_assigne',
         commandeId: publicId,
         livreurId: livreur.public_id,
         updatedAt: new Date()
       };
+
       if (clientPublicId) {
         io.to(`user_${clientPublicId}`).emit('commande_updated', payload);
       }
-      io.to(`user_${livreur.public_id}`).emit('commande_updated', payload);
+
+      io.to(`user_${livreurPublicId}`).emit('commande_updated', payload);
+
+      // Émettre aux admins (pour mise à jour de l'interface)
+      io.to('admins').emit('commande_updated', {
+        ...payload,
+        adminMessage: `Livreur assigné par ${req.user.prenom} ${req.user.nom}`
+      });
+
+      console.log(`📤 Notifications envoyées pour l'assignation du livreur à la commande ${publicId}`);
     }
 
     res.json(updated);
@@ -111,7 +168,7 @@ export async function assignerLivreur(req, res) {
     console.error('❌ Erreur assignerLivreur:', error);
     res.status(500).json({ error: error.message });
   }
-};
+}
 
 export async function annulerAssignation(req, res) {
   try {
@@ -144,21 +201,76 @@ export async function annulerAssignation(req, res) {
 
     const updated = await Commande.findByIdWithLivraison(publicId);
 
+    // 1️⃣ Récupérer les parties prenantes
+    const client = await User.findById(commande.user_id);
+    const clientPublicId = client?.public_id || null;
+
+    // 2️⃣ Récupérer l'instance Socket.IO
     const io = req.app.get('io');
+
     if (io) {
-      const client = await User.findById(commande.user_id);
-      const clientPublicId = client?.public_id || null;
+      // 🔹 Récupérer tous les administrateurs
+      const [admins] = await db.execute('SELECT public_id FROM users WHERE role = ?', ['admin']);
+
+      // Message pour les admins
+      const adminMessage = `L'assignation du livreur (${livreurActuel?.prenom} ${livreurActuel?.nom}) a été annulée pour la commande #${publicId} par l'administrateur ${req.user.prenom} ${req.user.nom}`;
+      const adminLink = `/admin/livraisons/${publicId}`;
+
+      // 🔔 Notification persistante pour chaque admin
+      for (const admin of admins) {
+        await Notification.create({
+          user_public_id: admin.public_id,
+          type: 'assignation_annulee',
+          title: '❌ Assignation annulée',
+          message: adminMessage,
+          link: adminLink
+        });
+      }
+
+      // 📨 Notification persistante pour le client
+      if (clientPublicId) {
+        await Notification.create({
+          user_public_id: clientPublicId,
+          type: 'assignation_annulee',
+          title: '❌ Livreur annulé',
+          message: `L'assignation du livreur pour votre commande #${publicId} a été annulée.`,
+          link: `/client/commandes/${publicId}`
+        });
+      }
+
+      // 📨 Notification persistante pour le livreur
+      if (livreurPublicId) {
+        await Notification.create({
+          user_public_id: livreurPublicId,
+          type: 'assignation_annulee',
+          title: '❌ Mission annulée',
+          message: `Votre assignation à la commande #${publicId} a été annulée.`,
+          link: `/livreur/commandes/${publicId}`
+        });
+      }
+
+      // ⚡ Émettre en temps réel
       const payload = {
         type: 'assignation_annulee',
         commandeId: publicId,
         updatedAt: new Date()
       };
+
       if (clientPublicId) {
         io.to(`user_${clientPublicId}`).emit('commande_updated', payload);
       }
+
       if (livreurPublicId) {
         io.to(`user_${livreurPublicId}`).emit('commande_updated', payload);
       }
+
+      // Émettre aux admins (pour mise à jour de l'interface)
+      io.to('admins').emit('commande_updated', {
+        ...payload,
+        adminMessage: `Assignation annulée par ${req.user.prenom} ${req.user.nom}`
+      });
+
+      console.log(`📤 Notifications envoyées pour l'annulation d'assignation de la commande ${publicId}`);
     }
 
     res.json(updated);
@@ -166,9 +278,7 @@ export async function annulerAssignation(req, res) {
     console.error('❌ Erreur annulerAssignation:', error);
     res.status(500).json({ error: error.message });
   }
-};
-
-export async function updateStatutLivraison(req, res) {
+}export async function updateStatutLivraison(req, res) {
   try {
     const { publicId } = req.params;
     const { statut_livraison } = req.body;
@@ -184,6 +294,7 @@ export async function updateStatutLivraison(req, res) {
 
     await commande.updateStatutLivraison(statut_livraison);
 
+    // Si la commande est livrée ou annulée, ajuster la disponibilité du livreur
     if (statut_livraison === 'Livrée' || statut_livraison === 'Annulée') {
       if (commande.livreur_id) {
         const livreur = await User.findById(commande.livreur_id);
@@ -203,27 +314,81 @@ export async function updateStatutLivraison(req, res) {
 
     const updated = await Commande.findByIdWithLivraison(publicId);
 
+    // 1️⃣ Récupérer les parties prenantes
+    const client = await User.findById(commande.user_id);
+    const clientPublicId = client?.public_id || null;
+
+    let livreurPublicId = null;
+    if (commande.livreur_id) {
+      const livreur = await User.findById(commande.livreur_id);
+      livreurPublicId = livreur?.public_id || null;
+    }
+
+    // 2️⃣ Récupérer l'instance Socket.IO
     const io = req.app.get('io');
+
     if (io) {
-      let livreurPublicId = null;
-      if (commande.livreur_id) {
-        const livreur = await User.findById(commande.livreur_id);
-        livreurPublicId = livreur?.public_id || null;
+      // 🔹 Récupérer tous les administrateurs
+      const [admins] = await db.execute('SELECT public_id FROM users WHERE role = ?', ['admin']);
+
+      const adminMessage = `Le statut de livraison de la commande #${publicId} est passé à "${statut_livraison}" par l'administrateur ${req.user.prenom} ${req.user.nom}.`;
+      const adminLink = `/admin/livraisons/${publicId}`;
+
+      // 🔔 Notification persistante pour chaque admin
+      for (const admin of admins) {
+        await Notification.create({
+          user_public_id: admin.public_id,
+          type: 'statut_livraison_change',
+          title: '📦 Avancement livraison',
+          message: adminMessage,
+          link: adminLink
+        });
       }
-      const client = await User.findById(commande.user_id);
-      const clientPublicId = client?.public_id || null;
+
+      // 📨 Notification persistante pour le client
+      if (clientPublicId) {
+        await Notification.create({
+          user_public_id: clientPublicId,
+          type: 'statut_livraison_change',
+          title: '📦 Statut de votre livraison',
+          message: `Le statut de livraison de votre commande #${publicId} est passé à "${statut_livraison}".`,
+          link: `/client/commandes/${publicId}`
+        });
+      }
+
+      // 📨 Notification persistante pour le livreur
+      if (livreurPublicId) {
+        await Notification.create({
+          user_public_id: livreurPublicId,
+          type: 'statut_livraison_change',
+          title: '📦 Statut de livraison',
+          message: `Le statut de livraison de la commande #${publicId} que vous gérez est passé à "${statut_livraison}".`,
+          link: `/livreur/commandes/${publicId}`
+        });
+      }
+
+      // ⚡ Émettre en temps réel
       const payload = {
         type: 'statut_livraison_change',
         commandeId: publicId,
         newStatutLivraison: statut_livraison,
         updatedAt: new Date()
       };
+
       if (livreurPublicId) {
         io.to(`user_${livreurPublicId}`).emit('commande_updated', payload);
       }
       if (clientPublicId) {
         io.to(`user_${clientPublicId}`).emit('commande_updated', payload);
       }
+
+      // Émettre aux admins
+      io.to('admins').emit('commande_updated', {
+        ...payload,
+        adminMessage: `Statut de livraison mis à jour par ${req.user.prenom} ${req.user.nom}`
+      });
+
+      console.log(`📤 Notifications envoyées pour le changement de statut de livraison de la commande ${publicId}`);
     }
 
     res.json(updated);
@@ -231,4 +396,4 @@ export async function updateStatutLivraison(req, res) {
     console.error('❌ Erreur updateStatutLivraison:', error);
     res.status(500).json({ error: error.message });
   }
-};
+}

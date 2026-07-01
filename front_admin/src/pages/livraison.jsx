@@ -40,21 +40,17 @@ export default function Livraisons() {
   useEffect(() => {
     fetchCommandes();
     fetchLivreurs();
-    // Plus d'écoute WebSocket
   }, [fetchCommandes, fetchLivreurs]);
 
-
-  //  FILTRE : UNIQUEMENT les commandes avec le statut "Prêt"
+  // Filtrer uniquement les commandes avec le statut "Prêt"
   const commandesEligibles = commandes.filter(cmd => cmd.status === 'Prêt');
 
-  // Filtrer par recherche
   const filteredEligibles = commandesEligibles.filter(cmd => {
     const term = searchTerm.toLowerCase();
     return (cmd.client || '').toLowerCase().includes(term) ||
            (cmd.reference || '').toLowerCase().includes(term);
   });
 
-  // Assigner un livreur
   const assignerLivreur = async (commandeId, livreurId) => {
     if (!livreurId) {
       toast.error('Veuillez sélectionner un livreur');
@@ -74,7 +70,6 @@ export default function Livraisons() {
     }
   };
 
-  // Annuler l'assignation
   const annulerAssignation = async (commandeId) => {
     if (!window.confirm('Voulez-vous vraiment annuler l\'assignation de cette commande ?')) return;
     try {
@@ -87,7 +82,6 @@ export default function Livraisons() {
     }
   };
 
-  // Statistiques (basées sur les commandes avec statut "Prêt")
   const stats = {
     total: commandesEligibles.length,
     enAttente: commandesEligibles.filter(c => c.statut_livraison === 'En attente').length,
@@ -104,16 +98,15 @@ export default function Livraisons() {
 
   const getStatutColor = (statut) => {
     const colors = {
-      'En attente': 'bg-yellow-100 text-yellow-800',
-      'Collectée': 'bg-blue-100 text-blue-800',
-      'En cours': 'bg-purple-100 text-purple-800',
-      'Livrée': 'bg-green-100 text-green-800',
-      'Annulée': 'bg-red-100 text-red-800',
+      'En attente': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+      'Collectée': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+      'En cours': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+      'Livrée': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+      'Annulée': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
     };
-    return colors[statut] || 'bg-gray-100 text-gray-800';
+    return colors[statut] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
   };
 
-  // Animations
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.2 } },
@@ -132,7 +125,7 @@ export default function Livraisons() {
       initial="hidden"
       animate="visible"
       variants={containerVariants}
-      className="flex flex-col bg-gray-50 min-h-screen w-250"
+      className="flex flex-col bg-gray-50 dark:bg-gray-900 min-h-screen w-full"
     >
       <NavBarHorizontal
         buttonLabel="AJOUTER UN LIVREUR"
@@ -141,8 +134,8 @@ export default function Livraisons() {
         placeholder="Rechercher par client ou référence..."
       />
 
-      <div className="p-6">
-        <motion.h1 variants={itemVariants} className="text-2xl font-bold mb-6">
+      <div className="p-4 md:p-6">
+        <motion.h1 variants={itemVariants} className="text-2xl font-bold mb-6 text-gray-800 dark:text-white">
           Gestion des livraisons
         </motion.h1>
 
@@ -160,14 +153,14 @@ export default function Livraisons() {
                 key={card.id}
                 variants={itemVariants}
                 whileHover={{ y: -5 }}
-                className="bg-white rounded-xl shadow-sm p-4 border border-gray-200"
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border border-gray-200 dark:border-gray-700 transition-colors"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-500">{card.nom}</p>
-                    <p className="text-2xl font-bold text-gray-800">{card.valeur}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{card.nom}</p>
+                    <p className="text-2xl font-bold text-gray-800 dark:text-white">{card.valeur}</p>
                   </div>
-                  <div className={`p-3 rounded-full bg-${card.color}-50 text-${card.color}-500`}>
+                  <div className={`p-3 rounded-full bg-${card.color}-50 dark:bg-${card.color}-900/30 text-${card.color}-500 dark:text-${card.color}-400`}>
                     <Icon className="w-5 h-5" />
                   </div>
                 </div>
@@ -177,24 +170,39 @@ export default function Livraisons() {
         </motion.div>
 
         {/* Tableau */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          {loading && <div className="text-center py-8 text-gray-500">Chargement des commandes...</div>}
-          {error && <div className="text-red-600 text-center py-8">{error}</div>}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors">
+          {loading && (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              Chargement des commandes...
+            </div>
+          )}
+          {error && (
+            <div className="text-red-600 dark:text-red-400 text-center py-8">{error}</div>
+          )}
           {!loading && !error && (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-900/50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Réf.</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Client</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Adresse livraison</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Livreur</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Statut</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Réf.
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Client
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">
+                      Adresse livraison
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Livreur
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Statut
+                    </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-100">
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
                   {filteredEligibles.map((cmd, idx) => {
-                    // Toutes ces commandes ont déjà le statut "Prêt", donc isEligible = true
                     const isEligible = true;
                     return (
                       <motion.tr
@@ -203,47 +211,45 @@ export default function Livraisons() {
                         initial="hidden"
                         animate="visible"
                         variants={tableRowVariants}
-                        className="hover:bg-gray-50 transition-colors duration-150"
+                        className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150"
                       >
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
                           {cmd.reference || cmd.id?.substring(0, 8)}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
+                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
                           {cmd.client || '—'}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-500">
+                        <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 hidden sm:table-cell">
                           <div className="flex items-start gap-1">
-                            <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                            <MapPin className="w-4 h-4 text-gray-400 dark:text-gray-500 mt-0.5 flex-shrink-0" />
                             <span>{cmd.adresse_livraison || cmd.adresse_collecte || 'Non'}</span>
                           </div>
                         </td>
                         <td className="px-4 py-3">
                           {(() => {
-                            // Normalisation : ignorer accents, espaces, casse
                             const statut = cmd.statut_livraison?.trim().toLowerCase();
                             const estLivree = statut === 'livrée' || statut === 'livree';
 
                             if (estLivree) {
-                              return <span className="text-sm text-gray-500 font-medium"> Livrée</span>;
+                              return <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">Livrée</span>;
                             }
 
-                            // Commande non livrée → afficher les contrôles
                             return (
                               <>
                                 {cmd.livreur_id ? (
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-sm text-gray-700">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-sm text-gray-700 dark:text-gray-300">
                                       {cmd.livreur_nom || 'Livreur assigné'}
                                     </span>
                                     <button
                                       onClick={() => annulerAssignation(cmd.id)}
-                                      className="text-red-500 hover:text-red-700 text-xs font-medium px-2 py-1 rounded border border-red-200 hover:bg-red-50 transition-colors"
+                                      className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-xs font-medium px-2 py-1 rounded border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                                     >
                                       Annuler
                                     </button>
                                   </div>
                                 ) : (
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
                                     <select
                                       value={selectedLivreur[cmd.id] || ''}
                                       onChange={(e) =>
@@ -252,7 +258,7 @@ export default function Livraisons() {
                                           [cmd.id]: e.target.value,
                                         }))
                                       }
-                                      className="text-xs border rounded px-2 py-1 w-32"
+                                      className="text-xs border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-2 py-1 w-32"
                                     >
                                       <option value="">Choisir</option>
                                       {livreurs.map((l, index) => (
@@ -264,8 +270,10 @@ export default function Livraisons() {
                                     <button
                                       onClick={() => assignerLivreur(cmd.id, selectedLivreur[cmd.id])}
                                       disabled={!isEligible || assigning}
-                                      className={`text-white text-xs px-2 py-1 rounded disabled:opacity-50 ${
-                                        isEligible ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-300 cursor-not-allowed'
+                                      className={`text-white text-xs px-2 py-1 rounded disabled:opacity-50 transition-colors ${
+                                        isEligible
+                                          ? 'bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700'
+                                          : 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed'
                                       }`}
                                     >
                                       Assigner
@@ -279,10 +287,10 @@ export default function Livraisons() {
                         <td className="px-4 py-3">
                           <span
                             className={`text-xs px-2 py-1 rounded-full ${getStatutColor(
-                              cmd.status  || '-'
+                              cmd.status || '-'
                             )}`}
                           >
-                            {cmd.status  || '-'}
+                            {cmd.status || '-'}
                           </span>
                         </td>
                       </motion.tr>
@@ -290,7 +298,7 @@ export default function Livraisons() {
                   })}
                   {filteredEligibles.length === 0 && (
                     <tr>
-                      <td colSpan="5" className="text-center py-8 text-gray-500">
+                      <td colSpan="5" className="text-center py-8 text-gray-500 dark:text-gray-400">
                         Aucune commande avec le statut "Prêt".
                       </td>
                     </tr>

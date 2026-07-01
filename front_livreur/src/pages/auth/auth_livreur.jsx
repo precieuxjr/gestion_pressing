@@ -9,7 +9,7 @@ export default function Livreur_Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');   // ✅ on utilise 'error' pour l'affichage
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e) => {
@@ -18,11 +18,21 @@ export default function Livreur_Login() {
     setLoading(true);
 
     try {
-      // ✅ Utilisation du service dédié
       const result = await loginLivreur(email, password);
       
       if (result.success) {
-        // Redirection absolue vers le dashboard du livreur
+        // ✅ STOCKAGE EXPLICITE du token avec la bonne clé
+        if (result.token) {
+          localStorage.setItem('token_livreur', result.token);
+        } else {
+          console.warn('⚠️ Aucun token reçu du serveur');
+        }
+
+        // Stockage des informations utilisateur
+        if (result.user) {
+          localStorage.setItem('user', JSON.stringify(result.user));
+        }
+
         navigate('/livreur/dashboard');
       } else {
         setError(result.message || 'Identifiants incorrects');
@@ -57,7 +67,6 @@ export default function Livreur_Login() {
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
-            {/* ✅ Affichage de l'erreur avec la variable 'error' définie */}
             {error && (
               <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm font-medium flex items-center gap-2">
                 <span className="w-1.5 h-1.5 bg-red-500 rounded-full inline-block" />

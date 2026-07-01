@@ -1,7 +1,7 @@
 import api from './api.js';
 import { connectSocket, disconnectSocket } from './socket.js';
+import { setToken, clearToken } from './api.js'; // ou utilisez directement localStorage
 
-// ⚠️ Pas besoin de variable, on met le chemin directement
 const API_BASE_URL = '/livreur';
 
 // ========================================
@@ -9,7 +9,6 @@ const API_BASE_URL = '/livreur';
 // ========================================
 export const loginLivreur = async (email, password) => {
   try {
-    // ✅ Chemin correct : /livreur/login (sans /auth)
     const response = await api.post(`${API_BASE_URL}/login`, { email, password });
     const { token, user } = response.data;
 
@@ -17,10 +16,14 @@ export const loginLivreur = async (email, password) => {
       throw new Error('Token non reçu');
     }
 
-    localStorage.setItem('token', token);
+    // ✅ Stockage avec la bonne clé
+    setToken(token);                 // via api.js
+    // ou directement :
+    // localStorage.setItem('token_livreur', token);
+
     localStorage.setItem('user', JSON.stringify(user));
 
-    // 🔌 Connexion Socket automatique
+    // Connexion Socket automatique
     connectSocket();
 
     return { success: true, user };
@@ -43,7 +46,7 @@ export const getProfilLivreur = async () => {
 // 3. Déconnexion
 // ========================================
 export const logoutLivreur = () => {
-  localStorage.removeItem('token');
+  clearToken();          // ou localStorage.removeItem('token_livreur');
   localStorage.removeItem('user');
   disconnectSocket();
 };

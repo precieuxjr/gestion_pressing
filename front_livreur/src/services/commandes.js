@@ -49,9 +49,9 @@ export const payerCommande = async (commandeId) => {
 // ========================================
 // 6. Récupérer les détails d'une commande
 // ========================================
-export const getCommandeDetails = async (commandeId) => {
-  const response = await api.get(`${API_BASE_URL}/commandes/${commandeId}`);
-  return response.data;
+
+export const getCommandeDetails = (commandeId) => {
+  return api.get(`/livreur/commandes/${commandeId}`).then(res => res.data);
 };
 
 // ========================================

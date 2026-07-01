@@ -9,7 +9,6 @@ export const useWebSocketNotifications = () => {
   useEffect(() => {
     console.log('🔄 useEffect du hook admin exécuté – attachement des écouteurs');
 
-    // --- Handlers ---
     const handleConnect = () => {
       console.log('✅ Socket admin connecté (ID:', socket.id, ')');
     };
@@ -36,30 +35,33 @@ export const useWebSocketNotifications = () => {
 
         case 'livreur_assigne':
           title = '🚚 Livreur assigné';
-          message = `Un livreur a été assigné à une commande`;
+          message = `Un livreur a été assigné à la commande #${data.commandeId}`;
           type = 'success';
-          link = `/admin/livraisons`;
+          // ✅ Redirection vers le détail de la commande
+          link = `/admin/commandes/${data.commandeId}`;
           break;
 
         case 'statut_livraison_change':
           title = '📦 Avancement livraison';
           message = `Statut de livraison mis à jour : "${data.newStatutLivraison}"`;
           type = 'warning';
-          link = `/admin/livraisons`;
+          // ✅ Redirection vers le détail de la commande
+          link = `/admin/commandes/${data.commandeId}`;
           break;
 
         case 'assignation_annulee':
           title = '❌ Assignation annulée';
-          message = `L'assignation d'un livreur a été annulée`;
+          message = `L'assignation du livreur a été annulée pour la commande #${data.commandeId}`;
           type = 'error';
-          link = `/admin/livraisons`;
+          // ✅ Redirection vers le détail de la commande
+          link = `/admin/commandes/${data.commandeId}`;
           break;
 
         case 'commande_deleted':
           title = '🗑️ Commande supprimée';
-          message = `Une commande a été supprimée`;
+          message = `La commande #${data.commandeId} a été supprimée`;
           type = 'error';
-          link = `/admin/commandes`;
+          link = `/admin/commandes`; // page liste car détail inexistant
           break;
 
         case 'dates_changed':
@@ -74,6 +76,55 @@ export const useWebSocketNotifications = () => {
           message = `Une nouvelle commande a été créée par un client`;
           type = 'success';
           link = `/admin/commandes/${data.commandeId}`;
+          break;
+
+        case 'commande_creee':
+          title = '✅ Commande créée';
+          message = `Votre commande a été créée avec succès. En attente de validation.`;
+          type = 'success';
+          link = `/admin/commandes/${data.commandeId}`;
+          break;
+
+        case 'paiement_initie':
+          title = '💳 Paiement initié';
+          message = `Un paiement a été initié pour la commande #${data.commandeId}`;
+          type = 'info';
+          link = `/admin/commandes/${data.commandeId}`;
+          break;
+
+        case 'paiement_cree':
+          title = '✅ Paiement enregistré';
+          message = `Votre paiement a été enregistré avec succès.`;
+          type = 'success';
+          link = `/admin/commandes/${data.commandeId}`;
+          break;
+
+        case 'commande_payee':
+          title = '💰 Commande payée';
+          message = `La commande #${data.commandeId} a été marquée comme payée.`;
+          type = 'success';
+          link = `/admin/commandes/${data.commandeId}`;
+          break;
+
+        case 'profil_updated':
+          title = '👤 Profil mis à jour';
+          message = `Votre profil a été modifié avec succès.`;
+          type = 'info';
+          link = `/admin/clients`; // redirection vers la liste des clients (ou profil)
+          break;
+
+        case 'password_changed':
+          title = '🔑 Mot de passe modifié';
+          message = `Votre mot de passe a été mis à jour.`;
+          type = 'info';
+          link = `/admin/parametres`; // redirection vers paramètres
+          break;
+
+        case 'client_updated':
+          title = '👤 Client mis à jour';
+          message = `Les informations d'un client ont été modifiées.`;
+          type = 'info';
+          link = `/admin/clients`;
           break;
 
         default:
@@ -93,14 +144,12 @@ export const useWebSocketNotifications = () => {
       });
     };
 
-    // --- Attachement des écouteurs ---
     socket.on('connect', handleConnect);
     socket.on('disconnect', handleDisconnect);
     socket.on('commande_updated', handleCommandeUpdate);
 
     console.log('✅ Écouteurs attachés avec succès');
 
-    // --- Nettoyage ---
     return () => {
       socket.off('connect', handleConnect);
       socket.off('disconnect', handleDisconnect);

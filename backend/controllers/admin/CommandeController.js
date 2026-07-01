@@ -1,6 +1,8 @@
 import Commande from '../../models/commandes.js';
 import DetailsCommande from '../../models/details_commande.js';
 import User from '../../models/users.js';
+import Notification from '../../models/Notification.js';
+import db from '../../config/db.js';
 
 export async function getAllCommandes(req, res) {
     try {
@@ -31,66 +33,119 @@ export const getCommandeDetails = async (req, res) => {
 export async function updateCommandeStatus(req, res) {
     console.log('📥 Corps reçu :', req.body);
     console.log('📥 Status reçu :', req.body.status);
+    
     try {
-        const { publicId } = req.params;
-        const { status } = req.body;
-
-        // Vérifier que status est valide
-        const statutsValides = ['En attente', 'Payée', 'Annulée', 'Prêt', 'Retirer', 'Livrée'];
-        if (!statutsValides.includes(status)) {
-            return res.status(400).json({ error: 'Statut invalide' });
+      const { publicId } = req.params;
+      const { status } = req.body;
+  
+      // 1️⃣ Vérifier que le statut est valide
+      const statutsValides = ['En attente', 'Payée', 'Annulée', 'Prêt', 'Retirer', 'Livrée'];
+      if (!statutsValides.includes(status)) {
+        return res.status(400).json({ error: 'Statut invalide' });
+      }
+  
+      // 2️⃣ Récupérer la commande
+      const commande = await Commande.findByPublicId(publicId);
+      if (!commande) return res.status(404).json({ error: 'Commande introuvable' });
+  
+      // 3️⃣ Vérification : commande déjà livrée → non modifiable
+      if (commande.statut === 'Livrée') {
+        return res.status(400).json({ error: 'Impossible de modifier une commande déjà livrée' });
+      }
+  
+      // 4️⃣ Mettre à jour le statut
+      await commande.updateStatut(status);
+  
+      // 5️⃣ Récupérer l'instance Socket.IO
+      const io = req.app.get('io');
+  
+      // 6️⃣ Récupérer les parties prenantes
+      const client = await User.findById(commande.user_id);
+      const clientPublicId = client?.public_id || null;
+  
+      let livreurPublicId = null;
+      if (commande.livreur_id) {
+        const livreur = await User.findById(commande.livreur_id);
+        livreurPublicId = livreur?.public_id || null;
+      }
+  
+      // 7️⃣ NOTIFICATIONS PERSISTANTES (base de données)
+      if (io) {
+        // 🔹 Récupérer tous les administrateurs
+        const [admins] = await db.execute('SELECT public_id FROM users WHERE role = ?', ['admin']);
+  
+        const adminMessage = `Statut de la commande #${publicId} changé en "${status}" par l'administrateur ${req.user.prenom} ${req.user.nom}`;
+        const adminLink = `/admin/commandes/${publicId}`;
+  
+        // 🔔 Notification pour chaque admin
+        for (const admin of admins) {
+          await Notification.create({
+            user_public_id: admin.public_id,
+            type: 'status_changed',
+            title: '📊 Statut modifié',
+            message: adminMessage,
+            link: adminLink
+          });
         }
-
-        // Récupérer la commande
-        const commande = await Commande.findByPublicId(publicId);
-        if (!commande) return res.status(404).json({ error: 'Commande introuvable' });
-
-        // ✅ SÉCURITÉ : empêcher la modification si déjà livrée
-        if (commande.statut === 'Livrée') {
-            return res.status(400).json({ error: 'Impossible de modifier une commande déjà livrée' });
+  
+        // 🔔 Notification pour le client (si identifié)
+        if (clientPublicId) {
+          await Notification.create({
+            user_public_id: clientPublicId,
+            type: 'status_changed',
+            title: '📊 Statut de votre commande',
+            message: `Le statut de votre commande #${publicId} est passé à "${status}".`,
+            link: `/client/commandes/${publicId}`
+          });
         }
-
-        // Appeler la méthode du modèle
-        await commande.updateStatut(status);
-
-        // ✅ Émettre un événement WebSocket ciblé
-        const io = req.app.get('io');
-        if (io) {
-            // Récupérer le client (propriétaire de la commande)
-            const client = await User.findById(commande.user_id);
-            const clientPublicId = client?.public_id || null;
-
-            // Récupérer le livreur (si assigné)
-            let livreurPublicId = null;
-            if (commande.livreur_id) {
-                const livreur = await User.findById(commande.livreur_id);
-                livreurPublicId = livreur?.public_id || null;
-            }
-
-            const payload = {
-                type: 'status_changed',
-                commandeId: publicId,
-                newStatus: status,
-                updatedAt: new Date()
-            };
-
-            // Envoyer au client
-            if (clientPublicId) {
-                io.to(`user_${clientPublicId}`).emit('commande_updated', payload);
-            }
-
-            // Envoyer au livreur (s'il est assigné)
-            if (livreurPublicId) {
-                io.to(`user_${livreurPublicId}`).emit('commande_updated', payload);
-            }
+  
+        // 🔔 Notification pour le livreur (si assigné)
+        if (livreurPublicId) {
+          await Notification.create({
+            user_public_id: livreurPublicId,
+            type: 'status_changed',
+            title: '📊 Statut modifié',
+            message: `Le statut de la commande #${publicId} que vous gérez est passé à "${status}".`,
+            link: `/livreur/commandes/${publicId}`
+          });
         }
-
-        res.json({ message: 'Statut mis à jour', commande: commande.toJSON() });
+  
+        // 8️⃣ ÉMISSION EN TEMPS RÉEL (WebSocket)
+        const payload = {
+          type: 'status_changed',
+          commandeId: publicId,
+          newStatus: status,
+          updatedAt: new Date()
+        };
+  
+        // Envoyer au client
+        if (clientPublicId) {
+          io.to(`user_${clientPublicId}`).emit('commande_updated', payload);
+        }
+  
+        // Envoyer au livreur
+        if (livreurPublicId) {
+          io.to(`user_${livreurPublicId}`).emit('commande_updated', payload);
+        }
+  
+        // Envoyer aux administrateurs (pour info)
+        io.to('admins').emit('commande_updated', {
+          ...payload,
+          adminMessage: `Statut changé par ${req.user.prenom} ${req.user.nom}`
+        });
+  
+        console.log(`📤 Notifications envoyées pour le changement de statut de la commande ${publicId}`);
+      }
+  
+      // 9️⃣ Réponse HTTP
+      res.json({ message: 'Statut mis à jour', commande: commande.toJSON() });
+  
     } catch (error) {
-        console.error('❌ Erreur updateStatus:', error);
-        res.status(500).json({ error: error.message });
+      console.error('❌ Erreur updateStatus:', error);
+      res.status(500).json({ error: error.message });
     }
-}export async function updateCommandeDates(req, res) {
+  }
+  export async function updateCommandeDates(req, res) {
     try {
         const { publicId } = req.params;
         const { date_collecte, date_livraison } = req.body;

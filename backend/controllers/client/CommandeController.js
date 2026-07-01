@@ -5,35 +5,11 @@ import User from '../../models/users.js';
 import DetailsCommande from '../../models/details_commande.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-
+import Notification from '../../models/Notification.js';
 // =========================================
 // Contrôleur login (à corriger)
 // =========================================
-export const login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const user = await User.findByEmail(email);
-    if (!user) {
-      return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
-    }
-    const isValid = await bcrypt.compare(password, user.password);
-    if (!isValid) {
-      return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
-    }
-    const token = jwt.sign(
-      { public_id: user.public_id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-    res.json({
-      token,
-      user: { public_id: user.public_id, email: user.email, role: user.role }
-    });
-  } catch (error) {
-    console.error('❌ Erreur login:', error);
-    res.status(500).json({ error: error.message });
-  }
-};
+
 
 // =========================================
 // 1. Récupérer les commandes du client
@@ -54,18 +30,22 @@ export const getMesCommandes = async (req, res) => {
 // =========================================
 export const getCommandeDetails = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { publicId } = req.params;
     const clientId = req.user.public_id;
 
-    const belongs = await Commande.belongsToUser(id, clientId);
+    const belongs = await Commande.belongsToUser(publicId, clientId);
     if (!belongs) {
       return res.status(403).json({ success: false, message: 'Accès non autorisé' });
     }
 
-    const commande = await Commande.findByIdWithLivraison(id);
+    const commande = await Commande.findByIdWithLivraison(publicId);
     if (!commande) {
       return res.status(404).json({ success: false, message: 'Commande introuvable' });
     }
+
+    // ✅ Ajouter les infos du client depuis req.user (si l'utilisateur connecté est le propriétaire)
+    commande.email = req.user.email;
+    commande.telephone = req.user.telephone || '—';
 
     const details = await commande.getDetails();
     res.json({ success: true, data: { commande: commande.toJSON(), details } });
@@ -74,7 +54,6 @@ export const getCommandeDetails = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
 // =========================================
 // 3. Annuler une commande (si possible)
 // =========================================
@@ -207,6 +186,7 @@ export const modifierAdresseLivraison = async (req, res) => {
 // =========================================// =========================================
 // 8. Créer une commande (version complète)
 // =========================================
+
 export const creerCommande = async (req, res) => {
   const clientPublicId = req.user.public_id;
 
@@ -219,7 +199,7 @@ export const creerCommande = async (req, res) => {
     notes = ''
   } = req.body;
 
-  // 1️⃣ Validation des champs obligatoires
+  // 1️⃣ Validation
   if (!services || !Array.isArray(services) || services.length === 0) {
     return res.status(400).json({ error: 'Au moins un service est requis.' });
   }
@@ -235,7 +215,7 @@ export const creerCommande = async (req, res) => {
     }
     const userId = userRow[0].id;
 
-    // 3️⃣ Calcul du montant total et préparation des détails
+    // 3️⃣ Calcul du montant total et détails
     let montantTotal = 0;
     const detailsData = [];
 
@@ -245,7 +225,6 @@ export const creerCommande = async (req, res) => {
         return res.status(400).json({ error: 'Données de service invalides.' });
       }
 
-      // Vérifier que le service existe en base
       const [serviceRow] = await db.execute('SELECT id FROM services WHERE id = ?', [service_id]);
       if (!serviceRow || serviceRow.length === 0) {
         return res.status(400).json({ error: `Service ID ${service_id} inexistant.` });
@@ -269,7 +248,7 @@ export const creerCommande = async (req, res) => {
     });
     await commande.Commander();
 
-    // 5️⃣ Insérer les détails de la commande
+    // 5️⃣ Insérer les détails
     const commandeId = commande.id;
     for (const detail of detailsData) {
       const detailObj = new DetailsCommande({
@@ -283,21 +262,59 @@ export const creerCommande = async (req, res) => {
     }
     console.log(`✅ ${detailsData.length} services insérés pour la commande ${commande.public_id}`);
 
-    // 6️⃣ Récupérer la commande complète (avec les détails)
+    // 6️⃣ Récupérer la commande complète
     const commandeComplete = await Commande.findByIdWithLivraison(commande.public_id);
     const details = await commandeComplete.getDetails();
 
-    // 7️⃣ Émettre une notification WebSocket (uniquement pour les admins)
-const io = req.app.get('io');
-if (io) {
-  io.to('admins').emit('commande_updated', {   // ← io.to('admins') au lieu de io.emit
-    type: 'nouvelle_commande',
-    commandeId: commande.public_id,
-    userId: userId,
-    updatedAt: new Date()
-  });
-  console.log('📤 Émission WebSocket vers admins : nouvelle_commande', commande.public_id);
-}
+    // 7️⃣ Récupérer l'instance de Socket.IO
+    const io = req.app.get('io');
+
+    if (io) {
+      // 📌 Récupérer tous les administrateurs (pour les notifications persistantes)
+      const [admins] = await db.execute('SELECT public_id FROM users WHERE role = ?', ['admin']);
+
+      // Message commun pour les admins
+      const adminMessage = `Nouvelle commande #${commande.public_id} créée par ${req.user.prenom} ${req.user.nom}`;
+      const adminLink = `/admin/commandes/${commande.public_id}`;
+
+      // 🔔 Créer une notification en base pour chaque admin
+      for (const admin of admins) {
+        await Notification.create({
+          user_public_id: admin.public_id,
+          type: 'nouvelle_commande',
+          title: '📦 Nouvelle commande',
+          message: adminMessage,
+          link: adminLink
+        });
+      }
+
+      // 📨 Notification pour le client
+      await Notification.create({
+        user_public_id: clientPublicId,
+        type: 'commande_creee',
+        title: '✅ Commande créée',
+        message: 'Votre commande a été créée avec succès. En attente de validation par l\'administrateur.',
+        link: `/client/commandes/${commande.public_id}`
+      });
+
+      // ⚡ Émettre en temps réel
+      io.to('admins').emit('commande_updated', {
+        type: 'nouvelle_commande',
+        commandeId: commande.public_id,
+        userId: userId,
+        updatedAt: new Date()
+      });
+
+      io.to(`user_${clientPublicId}`).emit('commande_updated', {
+        type: 'commande_creee',
+        commandeId: commande.public_id,
+        statut: 'En attente',
+        message: 'Votre commande a été créée avec succès. En attente de validation par l\'administrateur.',
+        updatedAt: new Date()
+      });
+
+      console.log(`📤 Notifications envoyées pour la commande ${commande.public_id}`);
+    }
 
     // 8️⃣ Réponse HTTP
     res.status(201).json({

@@ -1,4 +1,6 @@
 import User from '../../models/users.js';
+import Notification from '../../models/Notification.js';
+import db from '../../config/db.js';
 
 export const getAllClients = async (req, res) => {
   try {
@@ -63,19 +65,79 @@ export const getClientById = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 export const UpdateProfil = async (req, res) => {
   try {
     console.log('📥 Params reçus :', req.params);
     console.log('📥 Body reçu :', req.body);
 
     const { publicId } = req.params;
-    const { nom,postnom, prenom, telephone, adresse, role } = req.body;
+    const { nom, postnom, prenom, telephone, adresse, role } = req.body;
 
     console.log('🔍 publicId extrait :', publicId);
 
-    const updated = await User.updateProfile(publicId, { nom , postnom, prenom, telephone, adresse, role });
+    // 1️⃣ Mettre à jour le client
+    const updated = await User.updateProfile(publicId, { nom, postnom, prenom, telephone, adresse, role });
+
+    // 2️⃣ Récupérer le client pour avoir ses infos avant/après
+    const client = await User.findByPublicId(publicId);
+    if (!client) {
+      return res.status(404).json({ error: 'Client introuvable après mise à jour' });
+    }
+
+    // 3️⃣ Récupérer l'instance Socket.IO
+    const io = req.app.get('io');
+
+    if (io) {
+      // 🔹 Récupérer tous les administrateurs
+      const [admins] = await db.execute('SELECT public_id FROM users WHERE role = ?', ['admin']);
+
+      // Message pour les admins
+      const adminMessage = `Le profil du client ${client.prenom} ${client.nom} (${client.email}) a été mis à jour par l'administrateur ${req.user.prenom} ${req.user.nom}.`;
+      const adminLink = `/admin/clients/${publicId}`;
+
+      // 🔔 Notification persistante pour chaque admin
+      for (const admin of admins) {
+        await Notification.create({
+          user_public_id: admin.public_id,
+          type: 'client_updated',
+          title: '👤 Client mis à jour',
+          message: adminMessage,
+          link: adminLink
+        });
+      }
+
+      // 📨 Notification persistante pour le client lui-même
+      await Notification.create({
+        user_public_id: publicId,
+        type: 'client_updated',
+        title: '👤 Votre profil a été mis à jour',
+        message: `Votre profil a été modifié par l'administrateur ${req.user.prenom} ${req.user.nom}.`,
+        link: `/client/profil`
+      });
+
+      // ⚡ Émettre en temps réel
+      const payload = {
+        type: 'client_updated',
+        clientId: publicId,
+        updatedFields: { nom, prenom, telephone, adresse, role },
+        updatedAt: new Date()
+      };
+
+      // Envoyer au client
+      io.to(`user_${publicId}`).emit('client_updated', payload);
+
+      // Envoyer aux admins
+      io.to('admins').emit('client_updated', {
+        ...payload,
+        adminMessage: `Profil client mis à jour par ${req.user.prenom} ${req.user.nom}`
+      });
+
+      console.log(`📤 Notifications envoyées pour la mise à jour du profil du client ${publicId}`);
+    }
+
+    // 4️⃣ Réponse HTTP
     res.json({ message: 'Client mis à jour avec succès', user: updated });
+
   } catch (error) {
     console.error('❌ Erreur updateProfil:', error);
     res.status(500).json({ error: error.message });

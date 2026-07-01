@@ -1,6 +1,6 @@
 // src/pages/client/Dashboard.jsx
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { 
   Package, 
   ShoppingBag, 
@@ -10,15 +10,18 @@ import {
   Eye,
   PlusCircle,
   LogOut,
-  User
+  User,
+  X
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { clientService } from '../services/clientService';
 import ConfirmationModal from '../components/confirmationModal';
 import NotificationBadge from '../components/NotificationBadge';
+import OrderDetails from '../components/OrderDetails'; // ✅ import du composant
 
 export default function ClientDashboard() {
   const navigate = useNavigate();
+  const { id: orderIdFromUrl } = useParams(); // ✅ récupération de l'ID dans l'URL
   const [stats, setStats] = useState({
     total_commandes: 0,
     livrees: 0,
@@ -31,18 +34,20 @@ export default function ClientDashboard() {
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
 
-  // États pour le modal
+  // États pour le modal de confirmation
   const [modalOpen, setModalOpen] = useState(false);
   const [commandeToCancel, setCommandeToCancel] = useState(null);
+
+  // États pour les détails de la commande
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
+  // Chargement initial
   useEffect(() => {
-    // Récupérer l'utilisateur depuis localStorage
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
-    fetchData();
-  }, []);
-  useEffect(() => {
     fetchData();
   }, []);
 
@@ -62,11 +67,44 @@ export default function ClientDashboard() {
       setLoading(false);
     }
   };
+
+  // ✅ Ouvrir automatiquement les détails si un ID est présent dans l'URL
+  useEffect(() => {
+    if (orderIdFromUrl && !selectedOrder) {
+      handleViewOrder(orderIdFromUrl);
+    }
+  }, [orderIdFromUrl]);
+
+  // ✅ Récupérer les détails d'une commande
+  const handleViewOrder = async (publicId) => {
+    setLoadingDetails(true);
+    try {
+      const response = await clientService.getCommandeDetails(publicId);
+      // ✅ Fusionner commande et détails
+      const commandeData = response.data.commande || {};
+      const services = response.data.details || [];
+      setSelectedOrder({ ...commandeData, services });
+    } catch (err) {
+      toast.error(err.message || 'Erreur lors du chargement des détails');
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+  // ✅ Fermer le modal et nettoyer l'URL
+  const handleCloseDetails = () => {
+    setSelectedOrder(null);
+    if (orderIdFromUrl) {
+      navigate('/client/dashboard', { replace: true }); // ou '/client/commandes'
+    }
+  };
+
+  // --- Gestion des autres actions (annulation, logout, etc.) ---
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     navigate('/');
   };
+
   const handleAnnuler = async () => {
     if (!commandeToCancel) return;
     try {
@@ -87,7 +125,10 @@ export default function ClientDashboard() {
 
   // Cartes statistiques
   const statCards = [
-    // ... identique
+    { id: 1, label: 'Total commandes', value: stats.total_commandes, icon: ShoppingBag, bg: 'bg-blue-50', text: 'text-blue-600' },
+    { id: 2, label: 'Livrées', value: stats.livrees, icon: CheckCircle, bg: 'bg-green-50', text: 'text-green-600' },
+    { id: 3, label: 'En attente', value: stats.total_commandes - stats.livrees - stats.annulees, icon: Clock, bg: 'bg-yellow-50', text: 'text-yellow-600' },
+    { id: 4, label: 'Total dépensé', value: stats.total_depense?.toLocaleString() + ' FC', icon: DollarSign, bg: 'bg-purple-50', text: 'text-purple-600' },
   ];
 
   if (error) {
@@ -119,53 +160,43 @@ export default function ClientDashboard() {
         cancelLabel="Non, garder"
       />
 
-<NotificationBadge />
+      <NotificationBadge />
 
-   {/* 👤 Section utilisateur – version premium */}
-<div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl shadow-md border border-blue-100/50 p-5 mb-6 flex flex-wrap items-center justify-between transition-all duration-300 hover:shadow-lg">
-  <div className="flex items-center gap-4">
-    {/* Avatar avec effet de glow */}
-    <div className="relative">
-    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-slate-800 to-blue-300 flex items-center justify-center text-white shadow-lg shadow-slate-900/25 ring-4 ring-white">
-        <span className="text-xl font-bold">
-          {user?.prenom?.charAt(0).toUpperCase()}
-          {user?.nom?.charAt(0).toUpperCase()}
-        </span>
+      {/* 👤 Section utilisateur */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl shadow-md border border-blue-100/50 p-5 mb-6 flex flex-wrap items-center justify-between transition-all duration-300 hover:shadow-lg">
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-slate-800 to-blue-300 flex items-center justify-center text-white shadow-lg shadow-slate-900/25 ring-4 ring-white">
+              <span className="text-xl font-bold">
+                {user?.prenom?.charAt(0).toUpperCase()}
+                {user?.nom?.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-400 border-2 border-white rounded-full"></div>
+          </div>
+          <div>
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Bienvenue</p>
+            <h2 className="text-lg font-bold text-gray-800 leading-tight">
+              {user ? `${user.prenom} ${user.nom}` : 'Chargement...'}
+            </h2>
+            {user?.email && <p className="text-xs text-gray-500 mt-0.5">{user.email}</p>}
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-1.5 bg-green-100 text-green-700 text-xs font-medium px-3 py-1.5 rounded-full">
+            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+            En ligne
+          </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 bg-white/80 hover:bg-white text-red-600 font-semibold px-5 py-2.5 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 border border-red-200/50"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="text-sm">Déconnexion</span>
+          </button>
+        </div>
       </div>
-      {/* Petit indicateur de connexion */}
-      <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-400 border-2 border-white rounded-full"></div>
-    </div>
 
-    {/* Infos utilisateur */}
-    <div>
-      <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Bienvenue</p>
-      <h2 className="text-lg font-bold text-gray-800 leading-tight">
-        {user ? `${user.prenom} ${user.nom}` : 'Chargement...'}
-      </h2>
-      {user?.email && (
-        <p className="text-xs text-gray-500 mt-0.5">{user.email}</p>
-      )}
-    </div>
-  </div>
-
-  {/* Actions */}
-  <div className="flex items-center gap-3">
-    {/* Badge statut */}
-    <div className="hidden sm:flex items-center gap-1.5 bg-green-100 text-green-700 text-xs font-medium px-3 py-1.5 rounded-full">
-      <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-      En ligne
-    </div>
-
-    {/* Bouton déconnexion */}
-    <button
-      onClick={handleLogout}
-      className="flex items-center gap-2 bg-white/80 hover:bg-white text-red-600 font-semibold px-5 py-2.5 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 border border-red-200/50"
-    >
-      <LogOut className="w-4 h-4" />
-      <span className="text-sm">Déconnexion</span>
-    </button>
-  </div>
-</div>
       {/* En-tête */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
@@ -270,7 +301,7 @@ export default function ClientDashboard() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => navigate(`/client/commandes/${cmd.id}`)}
+                          onClick={() => navigate(`/client/commandes/${cmd.id}`)} // ← cette navigation ouvrira le modal
                           className="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
                         >
                           <Eye size={16} />
@@ -293,6 +324,32 @@ export default function ClientDashboard() {
           </div>
         )}
       </div>
+
+      {/* ======================================== */}
+      {/* ✅ MODAL DES DÉTAILS DE LA COMMANDE */}
+      {/* ======================================== */}
+      {selectedOrder && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={handleCloseDetails}
+              className="absolute -top-2 -right-2 bg-white dark:bg-gray-800 rounded-full p-1 shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 z-10"
+            >
+              <X className="w-6 h-6 text-gray-500 dark:text-gray-400" />
+            </button>
+            {loadingDetails ? (
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-8 text-center text-gray-500 dark:text-gray-400">
+                Chargement des détails...
+              </div>
+            ) : (
+              <OrderDetails
+                order={selectedOrder}
+                onClose={handleCloseDetails}
+              />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

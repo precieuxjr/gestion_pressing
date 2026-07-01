@@ -2,11 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Shirt, Truck, Undo2, DollarSign } from 'lucide-react';
-import Theme from '../components/theme';
 import illus_person from '../assets/dashboard/undraw_all-the-data_ijgn.svg';
 import { commandesService } from '../services/commandes';
 import { decodeToken } from '../utils/jwt';
-// import { socket } from '../services/socket'; // <-- SUPPRIMÉ
 import NavBarHorizontal from '../components/navbar_horizontal';
 
 // Variants d'animation
@@ -90,7 +88,6 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchDashboardData();
-    // ✅ Plus d'écoute WebSocket
   }, [fetchDashboardData]);
 
   // Indicateurs pour les cartes
@@ -127,14 +124,14 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
+      <div className="flex justify-center items-center h-screen text-gray-600 dark:text-gray-300">
         Chargement du tableau de bord...
       </div>
     );
   }
 
   if (error) {
-    return <div className="text-red-500 text-center p-6">{error}</div>;
+    return <div className="text-red-500 dark:text-red-400 text-center p-6">{error}</div>;
   }
 
   return (
@@ -142,163 +139,181 @@ export default function Dashboard() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
-      className="flex flex-row min-h-screen overflow-x-hidden w-250 bg-gray-300"
+      className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 w-full"
     >
-      <div className="flex flex-col flex-1 bg-gray-50">
-        {/* Header */}
-        <motion.header
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.4 }}
-          className="top-1 flex flex-row justify-between items-center mx-8"
-        >
-        
-        </motion.header>
+      {/* NavBar horizontale (recherche + bouton) */}
+      <NavBarHorizontal
+        buttonLabel="Nouvelle commande"
+        onButtonClick={() => console.log('Ajouter une commande')}
+        onSearch={(term) => console.log('Recherche :', term)}
+      />
 
+      <div className="flex flex-col flex-1 p-4 md:p-6">
         {/* Welcome block */}
         <motion.div
           initial={{ x: -20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="flex flex-row my-4 rounded-2xl h-30 mx-8 bg-gradient-to-br from-white to-blue-50 border border-blue-100 pb-2 shadow-xl shadow-blue-500/30"
+          className="flex flex-col md:flex-row items-center my-4 rounded-2xl p-4 md:p-6 bg-gradient-to-br from-white to-blue-50 dark:from-gray-800 dark:to-blue-900/20 border border-blue-100 dark:border-blue-800 shadow-xl shadow-blue-500/30 dark:shadow-blue-900/30"
         >
-          <div className="px-4 py-2">
-            <h1 className="text-black font-semibold">
-              <span className="text-blue-500 font-semibold text-2xl">
+          <div className="flex-1 px-2 md:px-4 py-2">
+            <h1 className="text-black dark:text-white font-semibold text-lg md:text-xl">
+              <span className="text-blue-500 dark:text-blue-400 font-semibold">
                 Bienvenue{' '}
               </span>
               sur votre tableau de bord,
-              <span className="text-blue-500 font-bold">
+              <span className="text-blue-500 dark:text-blue-400 font-bold">
                 {' '}
                 {user?.prenom || 'PRECIEUX'}
               </span>
             </h1>
-            <p className="text-[11px]">
+            <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 mt-1">
               Consultez en temps réel les commandes, clients et performances.
               Gérez les opérations quotidiennes, analysez les tendances et
-              améliorez la satisfaction client
+              améliorez la satisfaction client.
             </p>
             <Link to="/admin/clients">
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="text-[12px] p-2 bg-blue-500 text-white font-semibold uppercase my-1 rounded-xl"
+                className="text-xs md:text-sm p-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold uppercase my-2 rounded-xl transition-colors"
               >
-                Evolution Clientele
+                Évolution Clientèle
               </motion.button>
             </Link>
           </div>
-          <div className="relative w-30 h-30 mx-10 px-4">
-            <motion.img
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.3, duration: 0.4 }}
-              src={illus_person}
-              alt="Illustration d'une personne"
-              className="absolute right-2 w-35 h-30 rounded-lg"
-            />
-          </div>
+          <div className="hidden md:block w-32 h-32 md:w-40 md:h-40 flex-shrink-0">
+  <motion.img
+    initial={{ scale: 0.9, opacity: 0 }}
+    animate={{ scale: 1, opacity: 1 }}
+    transition={{ delay: 0.3, duration: 0.4 }}
+    src={illus_person}
+    alt="Illustration d'une personne"
+    className="w-full h-full object-contain"
+  />
+</div>
         </motion.div>
 
-        <main className="flex flex-col my-2 rounded-2xl h-30 mx-8 pb-2">
+        <main className="flex flex-col my-4 pb-2">
           {/* Stats cards */}
           <motion.div
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="grid grid-cols-4 gap-4 justify-items-center"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 justify-items-center"
           >
             {statsCards.map((item) => (
               <motion.div
                 key={item.id}
                 variants={itemVariants}
                 whileHover={{ y: -5, transition: { duration: 0.2 } }}
-                className="relative w-55 overflow-hidden rounded-xl bg-gradient-to-br from-white to-blue-50 p-4 shadow-sm border border-blue-100"
+                className="w-full max-w-xs relative overflow-hidden rounded-xl bg-gradient-to-br from-white to-blue-50 dark:from-gray-800 dark:to-blue-900/20 p-4 shadow-sm border border-blue-100 dark:border-blue-800"
               >
                 <div className="flex justify-between items-start">
-                  <item.icon className="w-6 h-6 text-blue-500" />
-                  <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                  <item.icon className="w-6 h-6 text-blue-500 dark:text-blue-400" />
+                  <span className="text-xs font-semibold text-blue-600 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/40 px-2 py-1 rounded-full">
                     {item.unit}
                   </span>
                 </div>
-                <p className="mt-4 text-xl font-bold text-gray-800 whitespace-nowrap">
+                <p className="mt-4 text-xl md:text-2xl font-bold text-gray-800 dark:text-white whitespace-nowrap">
                   {item.result}
                 </p>
-                <p className="text-sm text-gray-500">{item.nom}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{item.nom}</p>
               </motion.div>
             ))}
           </motion.div>
 
+          {/* Section des commandes récentes */}
           <div className="my-4">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="flex flex-row p-3 justify-between rounded-t-lg bg-gradient-to-br from-white to-blue-50"
+              className="flex flex-row p-3 justify-between rounded-t-lg bg-gradient-to-br from-white to-blue-50 dark:from-gray-800 dark:to-blue-900/20 border border-b-0 border-blue-100 dark:border-blue-800"
             >
-              <p className="text-[13px] font-bold">GESTION DES COMMANDES</p>
+              <p className="text-[13px] font-bold text-gray-800 dark:text-white">
+                GESTION DES COMMANDES
+              </p>
               <Link to="/admin/commandes">
                 <motion.span
                   whileHover={{ x: 5 }}
                   whileTap={{ scale: 0.95 }}
-                  className="text-[13px] font-bold flex justify-end text-blue-500 cursor-pointer"
+                  className="text-[13px] font-bold flex justify-end text-blue-500 dark:text-blue-400 cursor-pointer"
                 >
                   VOIR PLUS
                 </motion.span>
               </Link>
             </motion.div>
 
-            <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-              <thead>
-                <tr className="bg-gray-100 border-b border-gray-200">
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    N°COMMANDE
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    CLIENT
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    SERVICE
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    STATUT
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentOrders.length === 0 ? (
+            <div className="overflow-x-auto border border-t-0 border-blue-100 dark:border-blue-800 rounded-b-lg bg-white dark:bg-gray-800">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-100 dark:bg-gray-700">
                   <tr>
-                    <td colSpan="4" className="text-center py-4 text-gray-500">
-                      Aucune commande récente
-                    </td>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      N°COMMANDE
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      CLIENT
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      SERVICE
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      STATUT
+                    </th>
                   </tr>
-                ) : (
-                  recentOrders.map((order, idx) => (
-                    <motion.tr
-                      key={order.id}
-                      custom={idx}
-                      variants={tableRowVariants}
-                      initial="hidden"
-                      animate="visible"
-                      className="border-b border-gray-200 hover:bg-gray-50"
-                    >
-                      <td className="px-3 py-2 text-sm text-gray-900">
-                        {order.reference || order.id}
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {recentOrders.length === 0 ? (
+                    <tr>
+                      <td colSpan="4" className="text-center py-4 text-gray-500 dark:text-gray-400">
+                        Aucune commande récente
                       </td>
-                      <td className="px-3 py-2 text-sm text-gray-500">
-                        {order.client || '—'}
-                      </td>
-                      <td className="px-3 py-2 text-sm text-gray-500">
-                        {order.service_nom || '—'}
-                      </td>
-                      <td className="px-3 py-2 text-sm text-gray-500">
-                        {order.status || 'En attente'}
-                      </td>
-                    </motion.tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                    </tr>
+                  ) : (
+                    recentOrders.map((order, idx) => (
+                      <motion.tr
+                        key={order.id}
+                        custom={idx}
+                        variants={tableRowVariants}
+                        initial="hidden"
+                        animate="visible"
+                        className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                      >
+                        <td className="px-3 py-2 text-sm text-gray-900 dark:text-white">
+                          {order.reference || order.id}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
+                          {order.client || '—'}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
+                          {order.service_nom || '—'}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
+                          <span
+                            className={`
+                              inline-block px-2 py-1 text-xs font-medium rounded-full
+                              ${order.status === 'Payée' || order.status === 'Livrée'
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                                : order.status === 'Annulée'
+                                ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                                : order.status === 'Prêt' || order.status === 'Prête à retirer'
+                                ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
+                                : order.status === 'Retirer'
+                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                                : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                              }
+                            `}
+                          >
+                            {order.status || 'En attente'}
+                          </span>
+                        </td>
+                      </motion.tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </main>
       </div>

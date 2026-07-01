@@ -1,5 +1,5 @@
 // src/services/clientService.js
-import {apiPost, apiGet, apiPut } from './api';
+import { apiPost, apiGet, apiPut } from './api';
 
 export const clientService = {
   // Récupérer les statistiques du client
@@ -10,12 +10,12 @@ export const clientService = {
     apiGet(`/client/commandes?limit=${limit}&offset=${offset}`),
 
   // Récupérer les détails d'une commande
-  getCommandeDetails: (id) => apiGet(`/client/commandes/${id}`),
-  
+  getCommandeDetails: (publicId) =>
+    apiGet(`/client/commandes/${publicId}`),
 
   // Annuler une commande (PUT)
   annulerCommande: (id) => apiPut(`/client/commandes/${id}/annuler`),
-    // ✅ Ajout de la méthode manquante
-    creerCommande: (data) => apiPost('/client/commandes', data),
-  
+
+  // Créer une commande
+  creerCommande: (data) => apiPost('/client/commandes', data),
 };

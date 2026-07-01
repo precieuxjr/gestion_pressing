@@ -1,8 +1,9 @@
+// src/hooks/useWebSocketNotificationsLivreur.js
 import { useEffect } from 'react';
 import { socket } from '../services/socket';
 import { useNotifications } from '../context/NotificationContext';
 
-export const useWebSocketNotifications = () => {
+export const useWebSocketNotificationsLivreur = () => {
   const { addNotification } = useNotifications();
 
   useEffect(() => {
@@ -17,26 +18,33 @@ export const useWebSocketNotifications = () => {
       switch (data.type) {
         case 'livreur_assigne':
           title = '🚚 Nouvelle commande assignée';
-          message = `Une commande vous a été assignée.`;
+          message = `Commande #${data.commandeId} vous a été assignée.`;
           type = 'success';
-          link = `/livreur/commandes`;
+          link = `/livreur/commandes/${data.commandeId}`;
           break;
         case 'statut_livraison_change':
           title = '📦 Statut de livraison modifié';
-          message = `Statut de livraison : "${data.newStatutLivraison}" pour une commande.`;
+          message = `La commande #${data.commandeId} est maintenant "${data.newStatutLivraison}".`;
           type = 'warning';
-          link = `/livreur/commandes`;
+          link = `/livreur/commandes/${data.commandeId}`;
           break;
         case 'assignation_annulee':
           title = '❌ Assignation annulée';
-          message = `L'assignation d'une commande a été annulée.`;
+          message = `L'assignation de la commande #${data.commandeId} a été annulée.`;
           type = 'error';
-          link = `/livreur/commandes`;
+          link = `/livreur/commandes/${data.commandeId}`;
+          break;
+        case 'status_changed':
+          title = '📊 Statut de commande modifié';
+          message = `La commande #${data.commandeId} est maintenant "${data.newStatus}".`;
+          type = 'info';
+          link = `/livreur/commandes/${data.commandeId}`;
           break;
         default:
           title = '🔄 Mise à jour';
-          message = `Une modification a été effectuée sur une commande.`;
+          message = 'Une modification a été effectuée sur une commande.';
           type = 'info';
+          link = '/livreur/commandes';
       }
 
       if (title) {
@@ -45,9 +53,11 @@ export const useWebSocketNotifications = () => {
     };
 
     socket.on('commande_updated', handleCommandeUpdate);
+    console.log('✅ Écouteurs WebSocket livreur activés');
 
     return () => {
       socket.off('commande_updated', handleCommandeUpdate);
+      console.log('🧹 Écouteurs WebSocket livreur retirés');
     };
   }, [addNotification]);
 };
